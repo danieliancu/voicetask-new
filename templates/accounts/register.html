@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Cont nou{% endblock %}
+{% block bottom_nav %}{% endblock %}
+{% block content %}
+  <h1>Creează un cont</h1>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% include "core/_form_fields.html" with form=form %}
+    <button type="submit" class="btn btn--block">{% icon "plus" 18 %} Creează contul</button>
+  </form>
+  <a class="btn btn--ghost btn--block" href="{% url 'accounts:login' %}">Am deja cont</a>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% load icons ro %}
+<article class="card" data-tab="blue" id="email-{{ email.pk }}">
+  <div class="card__body">
+    <span class="card__icon">{% icon "mail" 22 %}</span>
+    <div class="card__content">
+      <a class="card__title" href="{% url 'integrations:email_detail' email.pk %}">
+        {% if email.status == "follow_up" %}Urmărește email: {{ email.sender_name }}{% else %}{{ email.subject|default:email.sender_name }}{% endif %}
+      </a>
+      <div class="card__meta">
+        <span class="card__meta-item truncate">{% icon "clock" 14 %}{{ email.received_at|zi_relativa }} • {{ email.received_at|ora_ro }}</span>
+        <span class="badge">{{ email.get_status_display }}</span>
+      </div>
+      {% if email.snippet %}<p class="text-sm muted">{{ email.snippet|truncatechars:110 }}</p>{% endif %}
+    </div>
+    <div class="card__aside">
+      <button type="button" class="btn btn--ghost btn--sm"
+              hx-post="{% url 'integrations:toggle_follow_up' email.pk %}"
+              hx-target="#email-{{ email.pk }}" hx-swap="outerHTML"
+              aria-pressed="{% if email.status == 'follow_up' %}true{% else %}false{% endif %}">
+        {% icon "bell" 14 %} {% if email.status == "follow_up" %}Gata{% else %}Urmărește{% endif %}
+      </button>
+    </div>
+  </div>
+  <span class="card__tab">{{ email.follow_up_at|eticheta_tab|default:"GMAIL" }}</span>
+</article>

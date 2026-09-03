@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Eroare de server{% endblock %}
+{% block content %}
+  <div class="empty">
+    {% icon "alert" 32 %}
+    <h1>Eroare de server</h1>
+    <p>Ceva nu a funcționat. Încearcă din nou peste câteva momente.</p>
+    <a class="btn" href="{% url 'core:home' %}">Înapoi acasă</a>
+  </div>
+{% endblock %}

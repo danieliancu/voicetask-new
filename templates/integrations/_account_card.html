@@ -1,0 +1,64 @@
+{% load icons ro %}
+<div class="card card--tabless">
+  <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+    <div class="row">
+      <span class="card__icon">{% icon icon 22 %}</span>
+      <div class="card__content">
+        <span class="card__title">{{ label }}</span>
+        <span class="account-card__status">
+          {% if account and account.status == "connected" %}
+            <span class="status-dot status-dot--on" aria-hidden="true"></span>Conectat
+            {% if account.email %}· {{ account.email }}{% endif %}
+          {% elif account and account.status == "mock" %}
+            <span class="status-dot status-dot--demo" aria-hidden="true"></span>Demonstrativ
+          {% elif account and account.status == "error" %}
+            <span class="status-dot status-dot--off" aria-hidden="true"></span>Eroare
+          {% elif account and account.status == "expired" %}
+            <span class="status-dot status-dot--off" aria-hidden="true"></span>Autorizare expirată
+          {% else %}
+            <span class="status-dot status-dot--off" aria-hidden="true"></span>Neconectat
+          {% endif %}
+        </span>
+      </div>
+    </div>
+
+    {% if account and account.last_error %}
+      <p class="field__error">{% icon "alert" 14 %} {{ account.last_error }}</p>
+    {% endif %}
+    {% if result and result.error %}
+      <p class="field__error">{% icon "alert" 14 %} {{ result.error }}</p>
+    {% elif result %}
+      <p class="confidence confidence--ok">
+        {% icon "check-circle" 14 %} Sincronizat: {{ result.created }} noi, {{ result.updated }} actualizate.
+      </p>
+    {% endif %}
+    {% if account and account.last_synced_at %}
+      <p class="text-xs muted">Ultima sincronizare: {{ account.last_synced_at|data_ro }}, {{ account.last_synced_at|ora_ro }}</p>
+    {% endif %}
+
+    <div class="row">
+      {% if account and account.is_connected %}
+        <form method="post" action="{% url 'integrations:sync' account.pk %}"
+              hx-post="{% url 'integrations:sync' account.pk %}"
+              hx-target="#cont-{{ provider }}" hx-swap="innerHTML">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--secondary btn--sm">{% icon "refresh" 16 %} Sincronizează</button>
+        </form>
+        <form method="post" action="{% url 'integrations:disconnect' account.pk %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--ghost btn--sm">Deconectează</button>
+        </form>
+      {% else %}
+        <a class="btn btn--sm" href="{% url 'integrations:connect' provider %}">
+          {% icon "check" 16 %} Conectează
+        </a>
+        <form method="post" action="{% url 'integrations:enable_demo' provider %}">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--secondary btn--sm">
+            {% icon "sparkles" 16 %} Mod demonstrativ
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+</div>

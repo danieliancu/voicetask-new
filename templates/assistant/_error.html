@@ -1,0 +1,7 @@
+{% load icons %}
+<section class="draft" id="schita-{{ draft.uid }}">
+  <p class="message message--error" role="alert">
+    {% icon "alert" 18 %}<span>{{ message }}</span>
+  </p>
+  <a class="btn btn--secondary" href="{% url 'assistant:capture' %}">{% icon "mic" 18 %} Reia comanda</a>
+</section>

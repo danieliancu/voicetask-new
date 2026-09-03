@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Modifică{% endblock %}
+{% block appbar_title %}Modifică{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/" appbar_title="Modifică" %}
+{% endblock %}
+
+{% block content %}
+  <p class="muted">Alege elementul pe care vrei să îl modifici. Poți dicta modificarea sau o poți scrie.</p>
+
+  <div class="stack">
+    {% for item in items %}
+      <a class="card" href="{% url 'assistant:edit' item.kind item.pk %}" data-tab="{{ item.color }}">
+        <span class="card__body">
+          <span class="card__icon">{% icon item.icon 22 %}</span>
+          <span class="card__content">
+            <span class="card__title">{{ item.title }}</span>
+            <span class="card__meta">
+              <span class="card__meta-item">{% icon "calendar" 14 %}{{ item.when|zi_relativa }} • {{ item.when|ora_ro }}</span>
+            </span>
+            <span class="card__meta">
+              <span class="card__meta-item truncate">{% icon "info" 14 %}{{ item.source_label }}</span>
+            </span>
+          </span>
+          <span class="card__aside">{% icon "pencil" 18 %}</span>
+        </span>
+        <span class="card__tab">{{ item.tab_label }}</span>
+      </a>
+    {% empty %}
+      <p class="empty">{% icon "pencil" 28 %} Nu ai încă elemente de modificat.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

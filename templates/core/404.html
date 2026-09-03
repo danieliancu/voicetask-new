@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Pagina nu există{% endblock %}
+{% block content %}
+  <div class="empty">
+    {% icon "alert" 32 %}
+    <h1>Pagina nu există</h1>
+    <p>Elementul căutat nu există sau a fost mutat în coș.</p>
+    <a class="btn" href="{% url 'core:home' %}">Înapoi acasă</a>
+  </div>
+{% endblock %}

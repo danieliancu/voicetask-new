@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}{{ note.title }}{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/notite/" appbar_title="Notiță" %}
+{% endblock %}
+
+{% block content %}
+  <article class="card card--tabless card--flat">
+    <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+      <h1>{{ note.title }}</h1>
+      <div class="card__meta">
+        {% if note.category %}<span class="badge badge--accent">{{ note.category.name }}</span>{% endif %}
+        <span class="badge">{{ note.get_source_display }}</span>
+        <span class="card__meta-item">{% icon "clock" 14 %}{{ note.updated_at|data_zi_ro }}</span>
+      </div>
+      {% if note.content %}<p style="white-space:pre-wrap">{{ note.content }}</p>{% endif %}
+      {% if note.items.all %}
+        <ul class="stack--tight">
+          {% for item in note.items.all %}{% include "notes/_checklist_item.html" %}{% endfor %}
+        </ul>
+      {% endif %}
+      {% if note.source_document_id %}
+        <a class="detail-row" href="{% url 'documents:detail' note.source_document_id %}">
+          <span class="detail-row__icon">{% icon "scan" 20 %}</span>
+          <span><span class="detail-row__label">Sursă</span>
+            <span class="detail-row__value">Document scanat</span></span>
+          {% icon "chevron-right" 18 %}
+        </a>
+      {% endif %}
+    </div>
+  </article>
+
+  <div class="row">
+    <a class="btn btn--secondary" href="{% url 'notes:update' note.pk %}">{% icon "pencil" 18 %} Modifică</a>
+    <a class="btn btn--ghost" href="{% url 'assistant:edit' 'notita' note.pk %}">{% icon "mic" 18 %} Prin voce</a>
+    <span class="spacer"></span>
+    <button type="button" class="btn btn--danger btn--sm"
+            hx-get="{% url 'notes:delete' note.pk %}" hx-target="#dialog-confirmare" hx-swap="innerHTML">
+      {% icon "trash" 18 %} Șterge
+    </button>
+  </div>
+  <div id="dialog-confirmare"></div>
+{% endblock %}

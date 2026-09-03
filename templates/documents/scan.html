@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Fotografiază documentul{% endblock %}
+
+{% block header %}
+  {% url 'core:home' as home_url %}
+  {% include "core/_appbar.html" with back_url=home_url use_history_back=True appbar_title="Fotografiază documentul" hide_logo=True %}
+{% endblock %}
+
+{# Ecranul camerei ascunde navigatia inferioara ca sa ramana imersiv. #}
+{% block bottom_nav %}{% endblock %}
+
+{% block content %}
+  <div class="section" style="text-align:center">
+    <h1 style="font-size:var(--fs-xl)">Așază documentul în chenar</h1>
+    <p class="muted text-sm">Vom extrage automat datele importante, iar tu le confirmi.</p>
+  </div>
+
+  <div class="camera" data-camera
+       data-upload-url="{% url 'documents:upload' %}"
+       data-detect-url="{% url 'documents:detect' %}"
+       data-max-bytes="{{ max_bytes }}">
+    <video class="camera__video" data-camera-video playsinline muted
+           aria-label="Previzualizare cameră"></video>
+    <img class="camera__preview" data-camera-preview hidden alt="Fotografia făcută">
+
+    <div class="camera__frame" aria-hidden="true">
+      <span class="camera__corner camera__corner--tl"></span>
+      <span class="camera__corner camera__corner--tr"></span>
+      <span class="camera__corner camera__corner--bl"></span>
+      <span class="camera__corner camera__corner--br"></span>
+    </div>
+
+    <p class="camera__flag" data-camera-flag data-detected="false" role="status" aria-live="polite">
+      {% icon "info" 16 %} <span data-camera-flag-text>Caut documentul…</span>
+    </p>
+  </div>
+
+  <div class="camera__bar">
+    <label class="btn btn--secondary btn--sm">
+      {% icon "gallery" 18 %} Galerie
+      <input type="file" accept="image/*" class="visually-hidden" data-camera-file>
+    </label>
+
+    <button type="button" class="camera__shutter" data-camera-shoot aria-label="Fotografiază">
+      {% icon "camera" 30 %}
+    </button>
+
+    <label class="btn btn--secondary btn--sm" data-camera-torch-wrap hidden>
+      {% icon "flash" 18 %} Blitz
+      <input type="checkbox" class="visually-hidden" data-camera-torch>
+    </label>
+  </div>
+
+  {# Calea de rezerva, mereu functionala: incarcare directa fara acces la camera. #}
+  <noscript>
+    <form method="post" action="{% url 'documents:upload' %}" enctype="multipart/form-data" class="stack">
+      {% csrf_token %}
+      <label class="field__label" for="imagine-fallback">Alege o fotografie</label>
+      <input id="imagine-fallback" type="file" name="imagine" accept="image/*" capture="environment" required>
+      <button type="submit" class="btn">Trimite</button>
+    </form>
+  </noscript>
+
+  <div class="card card--tabless card--flat card--rings" data-camera-hints>
+    <span class="card__rings" aria-hidden="true">
+      <span class="card__ring"></span><span class="card__ring"></span>
+    </span>
+    <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+      <strong>Ce vom identifica</strong>
+      <div class="row">
+        <span class="badge">{% icon "calendar" 14 %} Data limită</span>
+        <span class="badge">{% icon "currency" 14 %} Suma</span>
+        <span class="badge">{% icon "bell" 14 %} Programări și alarme</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="row" data-camera-actions hidden>
+    <button type="button" class="btn btn--secondary btn--block" data-camera-retake>
+      {% icon "refresh" 18 %} Refă fotografia
+    </button>
+    <button type="button" class="btn btn--block" data-camera-confirm>
+      {% icon "check" 18 %} Trimite pentru procesare
+    </button>
+  </div>
+
+  <p class="recorder__status" data-camera-status role="status" aria-live="polite"></p>
+
+  <div id="rezultat-scanare" aria-live="polite"></div>
+{% endblock %}

@@ -1,0 +1,37 @@
+{% load icons %}
+{% if form.non_field_errors %}
+  <div class="message message--error" role="alert">
+    {% icon "alert" 18 %}<span>{{ form.non_field_errors|join:" " }}</span>
+  </div>
+{% endif %}
+{% for field in form %}
+  {% if field.is_hidden %}
+    {{ field }}
+  {% elif field.field.widget.input_type == "checkbox" %}
+    <div class="field field--checkbox {% if field.errors %}field--uncertain{% endif %}">
+      <label class="checkbox checkbox--setting" for="{{ field.id_for_label }}">
+        {{ field }}
+        <span class="checkbox__text">
+          <span class="field__label">
+            {{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}
+          </span>
+          {% if field.help_text %}<span class="field__help">{{ field.help_text }}</span>{% endif %}
+        </span>
+      </label>
+      {% for error in field.errors %}
+        <p class="field__error">{% icon "alert" 14 %} {{ error }}</p>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="field {% if field.errors %}field--uncertain{% endif %}">
+      <label class="field__label" for="{{ field.id_for_label }}">
+        {{ field.label }}{% if field.field.required %} <span aria-hidden="true">*</span>{% endif %}
+      </label>
+      {{ field }}
+      {% if field.help_text %}<p class="field__help">{{ field.help_text }}</p>{% endif %}
+      {% for error in field.errors %}
+        <p class="field__error">{% icon "alert" 14 %} {{ error }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endfor %}

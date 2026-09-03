@@ -1,0 +1,28 @@
+{% load icons ro %}
+<article class="card" data-tab="{{ notification.color_token }}" id="notificare-{{ notification.pk }}">
+  <div class="card__body">
+    <span class="card__icon">{% icon "bell" 20 %}</span>
+    <div class="card__content">
+      <a class="card__title" href="{{ notification.url|default:'#' }}">{{ notification.title }}</a>
+      {% if notification.body %}<p class="text-sm muted">{{ notification.body }}</p>{% endif %}
+      <div class="card__meta">
+        <span class="card__meta-item">{% icon "clock" 14 %}{{ notification.created_at|zi_relativa }} • {{ notification.created_at|ora_ro }}</span>
+        {% if notification.is_read %}
+          <span class="badge">Citită</span>
+        {% else %}
+          <span class="badge badge--accent">Necitită</span>
+        {% endif %}
+      </div>
+    </div>
+    {% if not notification.is_read %}
+      <div class="card__aside">
+        <button type="button" class="btn btn--ghost btn--sm"
+                hx-post="{% url 'notifications:mark_read' notification.pk %}"
+                hx-target="#notificare-{{ notification.pk }}" hx-swap="outerHTML">
+          {% icon "check" 14 %} Citit
+        </button>
+      </div>
+    {% endif %}
+  </div>
+  <span class="card__tab">{{ notification.get_kind_display|upper|truncatechars:10 }}</span>
+</article>

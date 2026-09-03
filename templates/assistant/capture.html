@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Adaugă{% endblock %}
+{% block appbar_title %}Adaugă{% endblock %}
+
+{% block content %}
+  <div class="section" style="text-align:center">
+    <h2 style="font-size:var(--fs-lg)">Spune ce vrei să creezi</h2>
+    <p class="muted text-sm">Asistentul completează detaliile, iar tu confirmi înainte de salvare.</p>
+  </div>
+
+  <div class="quick-actions" role="radiogroup" aria-label="Tipul elementului">
+    {% for value, label, icon_name in capture_types %}
+      <a class="quick-action {% if selected_type == value %}is-active{% endif %}"
+         href="?tip={{ value }}"
+         role="radio" aria-checked="{% if selected_type == value %}true{% else %}false{% endif %}"
+         style="{% if selected_type == value %}border-color:var(--color-accent);background:var(--color-accent-soft){% endif %}">
+        <span class="quick-action__icon">{% icon icon_name 24 %}</span>{{ label }}
+      </a>
+    {% endfor %}
+  </div>
+
+  {% if transcription_is_demo %}
+    <p class="message message--warning">
+      {% icon "info" 18 %}
+      <span>Transcrierea rulează în mod demonstrativ: nu există o cheie OpenAI configurată,
+        deci textul recunoscut provine dintr-un set de exemple. Restul fluxului este real.</span>
+    </p>
+  {% endif %}
+
+  <div class="recorder" data-recorder
+       data-upload-url="{% url 'assistant:voice_upload' %}"
+       data-max-bytes="{{ max_audio_bytes }}">
+    <button type="button" class="recorder__button" data-record-toggle data-state="idle"
+            aria-label="Începe înregistrarea" aria-pressed="false">
+      {% icon "mic" 44 %}
+    </button>
+    <p class="recorder__timer" data-timer aria-hidden="true">00:00</p>
+    <div class="recorder__level" aria-hidden="true"><div class="recorder__level-bar" data-level></div></div>
+    <p class="recorder__status" data-status role="status" aria-live="polite">Apasă și vorbește</p>
+    <button type="button" class="btn btn--secondary btn--sm" data-record-cancel hidden>
+      {% icon "close" 16 %} Anulează
+    </button>
+  </div>
+
+  <details data-text-fallback {% if mode == "text" %}open{% endif %}>
+    <summary class="btn btn--ghost btn--block" style="list-style:none">
+      {% icon "text" 18 %} Scrie în loc să vorbești
+    </summary>
+    <form class="stack" style="margin-top:var(--space-3)"
+          method="post" action="{% url 'assistant:text_command' %}"
+          hx-post="{% url 'assistant:text_command' %}"
+          hx-target="#zona-schita" hx-swap="innerHTML">
+      {% csrf_token %}
+      {% include "core/_form_fields.html" with form=text_form %}
+      <button type="submit" class="btn">{% icon "sparkles" 18 %} Interpretează</button>
+    </form>
+  </details>
+
+  <div id="zona-schita" aria-live="polite"></div>
+{% endblock %}

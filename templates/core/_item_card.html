@@ -1,0 +1,37 @@
+{% load icons ro %}
+{% comment %}
+  Cardul standard din liste. Toate cardurile au aceeasi structura, deci aceeasi
+  latime, acelasi tab si aceeasi aliniere.
+{% endcomment %}
+<a class="card" href="{{ item.url }}" data-tab="{{ item.color }}">
+  <div class="card__body">
+    <span class="card__icon">{% icon item.icon 22 %}</span>
+    <span class="card__content">
+      <span class="card__title">{{ item.title }}</span>
+      <span class="card__meta">
+        <span class="card__meta-item">{% icon "calendar" 14 %}{{ item.when|zi_relativa }}
+          {% if not item.all_day %}• {{ item.when|ora_ro }}{% endif %}
+          {% if item.end %}– {{ item.end|ora_ro }}{% endif %}
+        </span>
+      </span>
+      {% if item.location %}
+        <span class="card__meta">
+          <span class="card__meta-item truncate">{% icon "map-pin" 14 %}{{ item.location }}</span>
+        </span>
+      {% else %}
+        <span class="card__meta">
+          <span class="card__meta-item truncate">{% icon "info" 14 %}{{ item.source_label }}</span>
+        </span>
+      {% endif %}
+    </span>
+    {% if item.reminder %}
+      <span class="card__aside">
+        <span class="badge badge--alarm">
+          <span class="row" style="gap:4px">{% icon "bell" 14 %}<strong>{{ item.reminder.remind_at|ora_ro }}</strong></span>
+          <span class="text-xs">Alarmă</span>
+        </span>
+      </span>
+    {% endif %}
+  </div>
+  <span class="card__tab">{{ item.tab_label }}</span>
+</a>

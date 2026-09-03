@@ -1,0 +1,23 @@
+{% load icons %}
+<div class="month-grid">
+  <div class="month-head">LUN</div><div class="month-head">MAR</div><div class="month-head">MIE</div>
+  <div class="month-head">JOI</div><div class="month-head">VIN</div><div class="month-head">SÂM</div>
+  <div class="month-head">DUM</div>
+  {% for week in cal.month %}
+    {% for cell in week %}
+      <a class="month-cell {% if not cell.in_month %}month-cell--outside{% endif %}"
+         href="?vizualizare=zi&amp;d={{ cell.day|date:'Y-m-d' }}"
+         hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare=zi&amp;d={{ cell.day|date:'Y-m-d' }}"
+         hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
+         {% if cell.is_selected %}aria-current="date"{% endif %}
+         aria-label="{{ cell.day|date:'j F Y' }}{% if cell.count %}, {{ cell.count }} programări{% endif %}">
+        <span>{{ cell.day|date:"j" }}</span>
+        {% if cell.count %}<span class="week-day__dot" aria-hidden="true"></span>{% endif %}
+      </a>
+    {% endfor %}
+  {% endfor %}
+</div>
+
+<div class="stack" style="margin-top:var(--space-4)">
+  {% include "scheduling/_agenda.html" with cal=cal %}
+</div>

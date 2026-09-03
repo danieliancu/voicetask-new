@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Intră în cont{% endblock %}
+{% block bottom_nav %}{% endblock %}
+{% block content %}
+  <div class="section" style="text-align:center;padding-top:var(--space-8)">
+    <div class="appbar__title" style="font-size:var(--fs-2xl)">{% icon "mic" 32 %} Voice Task</div>
+    <p class="muted">Notițe, programări și alarme, prin voce.</p>
+  </div>
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% include "core/_form_fields.html" with form=form %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <button type="submit" class="btn btn--block">{% icon "check" 18 %} Intră</button>
+  </form>
+  <a class="btn btn--ghost btn--block" href="{% url 'accounts:register' %}">Creează un cont nou</a>
+{% endblock %}

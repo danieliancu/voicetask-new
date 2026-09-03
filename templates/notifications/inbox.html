@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Notificări{% endblock %}
+{% block header %}{% include "core/_appbar.html" with back_url="/" appbar_title="Notificări" %}{% endblock %}
+{% block content %}
+  {% include "notifications/_permission_banner.html" %}
+
+  <div class="section__head">
+    <h2 class="section__title">Toate notificările</h2>
+    <form method="post" action="{% url 'notifications:mark_all_read' %}"
+          hx-post="{% url 'notifications:mark_all_read' %}" hx-target="#lista-notificari" hx-swap="innerHTML">
+      {% csrf_token %}
+      <button type="submit" class="section__link">Marchează tot citit</button>
+    </form>
+  </div>
+
+  <div id="lista-notificari">{% include "notifications/_list.html" %}</div>
+{% endblock %}

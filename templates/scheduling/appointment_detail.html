@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}{{ appointment.title }}{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/programari/" appbar_title="Programare" %}
+{% endblock %}
+
+{% block content %}
+  <article class="card" data-tab="{{ appointment.color_token }}">
+    <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+      <h1>{{ appointment.title }}</h1>
+      <div class="card__meta">
+        <span class="badge">{{ appointment.get_source_display }}</span>
+        {% if appointment.is_external %}<span class="badge badge--accent">{% icon "calendar" 12 %} Sincronizată</span>{% endif %}
+      </div>
+      {% if appointment.description %}<p style="white-space:pre-wrap">{{ appointment.description }}</p>{% endif %}
+    </div>
+    <span class="card__tab">{{ appointment.starts_at|eticheta_tab }}</span>
+  </article>
+
+  <div class="detail-list">
+    <div class="detail-row">
+      <span class="detail-row__icon">{% icon "calendar" 20 %}</span>
+      <span><span class="detail-row__label">Când</span>
+        <span class="detail-row__value">{{ appointment.starts_at|data_zi_ro }}, {{ appointment.starts_at|ora_ro }}{% if appointment.ends_at %} – {{ appointment.ends_at|ora_ro }}{% endif %}</span></span>
+      <span></span>
+    </div>
+    {% if appointment.location %}
+      <div class="detail-row">
+        <span class="detail-row__icon">{% icon "map-pin" 20 %}</span>
+        <span><span class="detail-row__label">Locație</span>
+          <span class="detail-row__value">{{ appointment.location }}</span></span>
+        <span></span>
+      </div>
+    {% endif %}
+    {% for reminder in appointment.reminders.all %}
+      <div class="detail-row">
+        <span class="detail-row__icon">{% icon "bell" 20 %}</span>
+        <span><span class="detail-row__label">Alarmă · {{ reminder.get_status_display }}</span>
+          <span class="detail-row__value">{{ reminder.offset_minutes|decalaj_alarma }} ({{ reminder.remind_at|ora_ro }})</span></span>
+        <span></span>
+      </div>
+    {% endfor %}
+    {% if appointment.source_document_id %}
+      <a class="detail-row" href="{% url 'documents:detail' appointment.source_document_id %}">
+        <span class="detail-row__icon">{% icon "scan" 20 %}</span>
+        <span><span class="detail-row__label">Sursă conectată</span>
+          <span class="detail-row__value">Document scanat</span></span>
+        {% icon "chevron-right" 18 %}
+      </a>
+    {% endif %}
+  </div>
+
+  <div id="stare-sincronizare">
+    {% include "scheduling/_sync_state.html" with appointment=appointment %}
+  </div>
+
+  <div class="row">
+    <a class="btn btn--secondary" href="{% url 'scheduling:update' appointment.pk %}">{% icon "pencil" 18 %} Modifică</a>
+    <a class="btn btn--ghost" href="{% url 'assistant:edit' 'programare' appointment.pk %}">{% icon "mic" 18 %} Prin voce</a>
+    <span class="spacer"></span>
+    <button type="button" class="btn btn--danger btn--sm"
+            hx-get="{% url 'scheduling:delete' appointment.pk %}"
+            hx-target="#dialog-confirmare" hx-swap="innerHTML">
+      {% icon "trash" 18 %} Șterge
+    </button>
+  </div>
+  <div id="dialog-confirmare"></div>
+{% endblock %}

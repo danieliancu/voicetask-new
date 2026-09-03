@@ -1,0 +1,83 @@
+# Stack-ul complet: PostgreSQL + Redis + web + worker + beat.
+# Nu a putut fi rulat pe masina de dezvoltare (fara Docker); vezi README.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-voicetask}
+      POSTGRES_USER: ${POSTGRES_USER:-voicetask}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voicetask}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-voicetask}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: .
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    environment: &django-env
+      DJANGO_SETTINGS_MODULE: config.settings.prod
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?setează DJANGO_SECRET_KEY}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-False}
+      POSTGRES_DB: ${POSTGRES_DB:-voicetask}
+      POSTGRES_USER: ${POSTGRES_USER:-voicetask}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-voicetask}
+      POSTGRES_HOST: db
+      REDIS_URL: redis://redis:6379/0
+      REDIS_CACHE_URL: redis://redis:6379/1
+      CELERY_BROKER_URL: redis://redis:6379/0
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      AI_ENABLED: ${AI_ENABLED:-False}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      PROVIDER_OCR: ${PROVIDER_OCR:-apps.documents.providers.rapid_ocr.RapidOCRProvider}
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_CONTACT_EMAIL: ${VAPID_CONTACT_EMAIL:-}
+    volumes:
+      - media-data:/app/media
+    ports:
+      - "8000:8000"
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    build: .
+    command: ["celery", "-A", "config", "worker", "-l", "info"]
+    environment: *django-env
+    volumes:
+      - media-data:/app/media
+    depends_on:
+      db: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  beat:
+    build: .
+    command: ["celery", "-A", "config", "beat", "-l", "info"]
+    environment: *django-env
+    depends_on:
+      redis: {condition: service_healthy}
+
+volumes:
+  postgres-data:
+  redis-data:
+  media-data:

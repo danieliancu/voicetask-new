@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Rezumatul zilei{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/" appbar_title="Rezumatul zilei" %}
+{% endblock %}
+
+{% block content %}
+  <div>
+    <h1>{{ greeting }}, {{ prefs.greeting_name }}</h1>
+    <p class="muted">{{ day|data_zi_ro }}</p>
+  </div>
+
+  <div id="player-rezumat">{% include "daily_brief/_player.html" %}</div>
+
+  <div class="stat-row">
+    <div class="stat">
+      <span class="stat__value">{{ counts.appointments|default:0 }}</span>
+      <span class="stat__label">Programări</span>
+    </div>
+    <div class="stat">
+      <span class="stat__value">{{ counts.todo|default:0 }}</span>
+      <span class="stat__label">De rezolvat</span>
+    </div>
+    <div class="stat">
+      <span class="stat__value">{{ counts.emails|default:0 }}</span>
+      <span class="stat__label">Emailuri importante</span>
+    </div>
+  </div>
+
+  <section class="section" aria-labelledby="titlu-program">
+    <h2 class="section__title" id="titlu-program">{% icon "calendar" 18 %} Programul de astăzi</h2>
+    {% include "daily_brief/_timeline.html" %}
+  </section>
+
+  {% if todos %}
+    <section class="section" aria-labelledby="titlu-de-rezolvat">
+      <h2 class="section__title" id="titlu-de-rezolvat">{% icon "check-circle" 18 %} De rezolvat</h2>
+      <div class="stack">
+        {% for todo in todos %}
+          <div class="card card--rings" data-tab="blue">
+            <span class="card__rings" aria-hidden="true">
+              <span class="card__ring"></span><span class="card__ring"></span>
+              <span class="card__ring"></span>
+            </span>
+            <div class="card__body">
+              <span class="card__icon">{% icon todo.icon 20 %}</span>
+              <div class="card__content">
+                <span class="card__title">{{ todo.title }}</span>
+                <span class="card__meta"><span class="card__meta-item">{{ todo.detail }}</span></span>
+              </div>
+            </div>
+            <span class="card__tab">{{ todo.kind|upper|truncatechars:10 }}</span>
+          </div>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  {% if emails %}
+    <section class="section" aria-labelledby="titlu-emailuri">
+      <h2 class="section__title" id="titlu-emailuri">{% icon "mail" 18 %} Emailuri de urmărit</h2>
+      <div class="stack">
+        {% for email in emails %}
+          <a class="card" href="{% url 'integrations:email_detail' email.id %}" data-tab="blue">
+            <span class="card__body">
+              <span class="card__icon">{% icon "mail" 20 %}</span>
+              <span class="card__content">
+                <span class="card__title">Răspunde lui {{ email.sender }}</span>
+                <span class="card__meta"><span class="card__meta-item truncate">{{ email.subject }}</span></span>
+              </span>
+            </span>
+            <span class="card__tab">GMAIL</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="section" aria-labelledby="titlu-text">
+    <h2 class="section__title" id="titlu-text">{% icon "text" 18 %} Rezumatul complet</h2>
+    <div class="card card--tabless card--flat">
+      <div class="card__body">
+        <p style="white-space:pre-line">{{ brief.text }}</p>
+      </div>
+    </div>
+    {% if polish_rejected and polish_rejected != "dezactivat" %}
+      <p class="text-xs muted">
+        Reformularea AI a fost respinsă automat ({{ polish_rejected }}); afișăm textul construit
+        direct din datele tale.
+      </p>
+    {% endif %}
+  </section>
+
+  <section class="section" aria-labelledby="titlu-intrebari">
+    <h2 class="section__title" id="titlu-intrebari">{% icon "sparkles" 18 %} Întreabă despre ziua mea</h2>
+    <ul class="stack--tight" id="lista-intrebari">
+      {% for item in questions %}{% include "daily_brief/_qa_item.html" %}{% endfor %}
+    </ul>
+    <form class="row" method="post" action="{% url 'daily_brief:ask' %}"
+          hx-post="{% url 'daily_brief:ask' %}" hx-target="#lista-intrebari" hx-swap="beforeend"
+          hx-on::after-request="this.reset()">
+      {% csrf_token %}
+      <label class="visually-hidden" for="intrebare">Întrebarea ta despre ziua de azi</label>
+      <input id="intrebare" type="text" name="intrebare" style="flex:1;min-height:44px"
+             placeholder="Ex.: Care e prima programare?" autocomplete="off">
+      <button type="submit" class="btn btn--sm">{% icon "check" 16 %} Întreabă</button>
+    </form>
+  </section>
+{% endblock %}

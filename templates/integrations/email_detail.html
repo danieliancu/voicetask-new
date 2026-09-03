@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% load icons ro %}
+{% block title %}{{ email.subject|default:email.sender_name }}{% endblock %}
+{% block header %}{% include "core/_appbar.html" with back_url="/integrari/emailuri/" appbar_title="Email" %}{% endblock %}
+{% block content %}
+  <article class="card" data-tab="blue">
+    <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+      <h1 style="font-size:var(--fs-xl)">{{ email.subject|default:"(fără subiect)" }}</h1>
+      <div class="card__meta">
+        <span class="badge">{{ email.get_status_display }}</span>
+        <span class="card__meta-item">{% icon "clock" 14 %}{{ email.received_at|data_zi_ro }}, {{ email.received_at|ora_ro }}</span>
+      </div>
+      {# Continutul provine dintr-o sursa externa: se afiseaza escapat. #}
+      <p class="draft__transcript">{{ email.snippet|default:"Fragmentul nu este disponibil pentru permisiunea curentă." }}</p>
+    </div>
+    <span class="card__tab">GMAIL</span>
+  </article>
+
+  <div class="detail-list">
+    <div class="detail-row">
+      <span class="detail-row__icon">{% icon "users" 20 %}</span>
+      <span><span class="detail-row__label">Expeditor</span>
+        <span class="detail-row__value">{{ email.sender }}</span></span>
+      <span></span>
+    </div>
+    {% if email.follow_up_at %}
+      <div class="detail-row">
+        <span class="detail-row__icon">{% icon "bell" 20 %}</span>
+        <span><span class="detail-row__label">De urmărit</span>
+          <span class="detail-row__value">{{ email.follow_up_at|data_zi_ro }}, {{ email.follow_up_at|ora_ro }}</span></span>
+        <span></span>
+      </div>
+    {% endif %}
+  </div>
+
+  <form method="post" action="{% url 'integrations:toggle_follow_up' email.pk %}">
+    {% csrf_token %}
+    <button type="submit" class="btn btn--block">
+      {% icon "bell" 18 %} {% if email.status == "follow_up" %}Marchează rezolvat{% else %}Urmărește acest email{% endif %}
+    </button>
+  </form>
+{% endblock %}

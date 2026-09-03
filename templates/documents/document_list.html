@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Documente{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/" appbar_title="Documente" %}
+{% endblock %}
+
+{% block content %}
+  <div class="stack">
+    {% for document in documents %}
+      <a class="card" href="{% url 'documents:detail' document.pk %}" data-tab="{{ document.color_token }}">
+        <span class="card__body">
+          <span class="card__icon">{% icon "scan" 22 %}</span>
+          <span class="card__content">
+            <span class="card__title">{{ document }}</span>
+            <span class="card__meta">
+              <span class="card__meta-item">{% icon "clock" 14 %}{{ document.created_at|zi_relativa }}</span>
+              <span class="badge">{{ document.get_processing_status_display }}</span>
+            </span>
+            {% if document.extracted_data.amount.value %}
+              <span class="card__meta">
+                <span class="card__meta-item">{% icon "currency" 14 %}
+                  {{ document.extracted_data.amount.value }} {{ document.extracted_data.currency.value|default:"" }}</span>
+              </span>
+            {% endif %}
+          </span>
+        </span>
+        <span class="card__tab">{{ document.get_document_type_display|upper|truncatechars:10 }}</span>
+      </a>
+    {% empty %}
+      <p class="empty">{% icon "scan" 28 %} Nu ai scanat încă niciun document.</p>
+    {% endfor %}
+  </div>
+
+  <a class="btn btn--block" href="{% url 'documents:scan' %}">{% icon "camera" 18 %} Scanează un document</a>
+{% endblock %}

@@ -1,0 +1,54 @@
+{% load static %}{
+  "name": "Voice Task",
+  "short_name": "Voice Task",
+  "description": "Notițe, programări, alarme și documente scanate, prin voce.",
+  "lang": "ro",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#5B4CE0",
+  "background_color": "#F6F7FB",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    {
+      "src": "{% static 'img/icons/icon-192.png' %}",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "{% static 'img/icons/icon-512.png' %}",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "{% static 'img/icons/maskable-512.png' %}",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Adaugă",
+      "short_name": "Adaugă",
+      "url": "/asistent/inregistreaza/",
+      "icons": [{ "src": "{% static 'img/icons/icon-192.png' %}", "sizes": "192x192" }]
+    },
+    {
+      "name": "Scanează document",
+      "short_name": "Scanează",
+      "url": "/documente/scaneaza/",
+      "icons": [{ "src": "{% static 'img/icons/icon-192.png' %}", "sizes": "192x192" }]
+    },
+    {
+      "name": "Rezumatul zilei",
+      "short_name": "Rezumat",
+      "url": "/rezumat/",
+      "icons": [{ "src": "{% static 'img/icons/icon-192.png' %}", "sizes": "192x192" }]
+    }
+  ]
+}

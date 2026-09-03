@@ -1,0 +1,26 @@
+{% load icons %}
+<header class="appbar {% block appbar_class %}{% endblock %}">
+  {% if back_url %}
+    <a class="appbar__action" href="{{ back_url }}"{% if use_history_back %} data-history-back{% endif %} aria-label="Înapoi">{% icon "arrow-left" 24 %}</a>
+  {% elif request.resolver_match.view_name != "core:home" %}
+    <a class="appbar__action" href="{% url 'core:home' %}" aria-label="Înapoi">{% icon "arrow-left" 24 %}</a>
+  {% else %}
+    <button type="button" class="appbar__action" data-open-drawer aria-label="Deschide meniul" aria-haspopup="dialog">
+      {% icon "menu" 24 %}
+    </button>
+  {% endif %}
+
+  <div class="appbar__title">
+    {% if not hide_logo %}{% icon "mic" 26 %}{% endif %}
+    <span class="truncate">{% block appbar_title %}{{ appbar_title|default:"Voice Task" }}{% endblock %}</span>
+  </div>
+
+  {% if user.is_authenticated %}
+    <a class="appbar__action" href="{% url 'notifications:inbox' %}" aria-label="Notificări{% if unread_count %} ({{ unread_count }} necitite){% endif %}">
+      {% icon "bell" 24 %}
+      {% if unread_count %}<span class="appbar__badge" aria-hidden="true">{{ unread_count }}</span>{% endif %}
+    </a>
+  {% else %}
+    <span class="appbar__action" aria-hidden="true"></span>
+  {% endif %}
+</header>

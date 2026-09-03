@@ -1,0 +1,48 @@
+{% load icons %}
+{% comment %}
+  Starea reala a notificarilor push. Nu pretindem niciodata ca push-ul e activ
+  daca serverul nu il suporta sau browserul nu a dat permisiunea.
+{% endcomment %}
+<div class="card card--tabless card--flat" data-push
+     data-subscribe-url="{% url 'notifications:subscribe' %}"
+     data-unsubscribe-url="{% url 'notifications:unsubscribe' %}"
+     data-vapid-key="{{ vapid_public_key }}"
+     data-server-supports="{{ push.provider_supports_push|yesno:'true,false' }}"
+     data-has-subscription="{{ push.subscriptions|yesno:'true,false' }}">
+  <div class="card__body">
+    <span class="card__icon">{% icon "bell" 22 %}</span>
+    <div class="card__content">
+      <strong>Notificări în browser</strong>
+
+      {% if not push.provider_supports_push %}
+        <p class="text-sm muted">
+          Serverul nu are chei VAPID configurate, deci notificările push nu pot fi trimise.
+          Alarmele apar în această listă și pe ecranul Acasă.
+        </p>
+        <span class="badge badge--warning">{% icon "info" 12 %} Push indisponibil pe server</span>
+      {% else %}
+        <p class="text-sm muted" data-push-status role="status" aria-live="polite">
+          {% if push.is_active %}
+            Notificările push sunt active pe acest dispozitiv.
+          {% else %}
+            Nu ai activat notificările push pe acest dispozitiv.
+          {% endif %}
+        </p>
+        <div class="row">
+          <button type="button" class="btn btn--sm" data-push-enable
+                  {% if push.is_active %}hidden{% endif %}>
+            {% icon "bell" 16 %} Activează notificările
+          </button>
+          <button type="button" class="btn btn--secondary btn--sm" data-push-disable
+                  {% if not push.is_active %}hidden{% endif %}>
+            Dezactivează
+          </button>
+        </div>
+        <p class="text-xs muted" data-push-fallback hidden>
+          Browserul a refuzat permisiunea. Poți schimba asta din setările site-ului.
+          Până atunci, alarmele rămân vizibile în aplicație.
+        </p>
+      {% endif %}
+    </div>
+  </div>
+</div>

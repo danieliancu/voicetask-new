@@ -1,0 +1,19 @@
+{% load icons %}
+<a class="account-card" href="{% url 'integrations:status' %}">
+  <span class="card__icon">{% icon icon 22 %}</span>
+  <span class="account-card__text">
+    {# Numele lung se taie cu „…"; fara sageata, are tot spatiul cardului. #}
+    <span class="account-card__name">{{ label }}</span>
+    <span class="account-card__status">
+      {% if account and account.status == "connected" %}
+        <span class="status-dot status-dot--on" aria-hidden="true"></span>Conectat
+      {% elif account and account.status == "mock" %}
+        <span class="status-dot status-dot--demo" aria-hidden="true"></span>Demonstrativ
+      {% elif account and account.status == "error" %}
+        <span class="status-dot status-dot--off" aria-hidden="true"></span>Eroare
+      {% else %}
+        <span class="status-dot status-dot--off" aria-hidden="true"></span>Neconectat
+      {% endif %}
+    </span>
+  </span>
+</a>

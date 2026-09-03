@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Modifică{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/modifica/" appbar_title="Modifică" %}
+{% endblock %}
+
+{% block content %}
+  <article class="card" data-tab="{{ object.color_token|default:'violet' }}">
+    <div class="card__body">
+      <span class="card__icon">{% icon "file" 22 %}</span>
+      <div class="card__content">
+        <span class="card__title">{{ object }}</span>
+        <div class="card__meta">
+          {% if object.starts_at %}
+            <span class="card__meta-item">{% icon "calendar" 14 %}{{ object.starts_at|data_zi_ro }}</span>
+          {% elif object.remind_at %}
+            <span class="card__meta-item">{% icon "bell" 14 %}{{ object.remind_at|data_zi_ro }}, {{ object.remind_at|ora_ro }}</span>
+          {% else %}
+            <span class="card__meta-item">{% icon "clock" 14 %}Actualizat {{ object.updated_at|zi_relativa|lower }}</span>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    <span class="card__tab">{{ kind|upper }}</span>
+  </article>
+
+  <div class="row">
+    {% if kind == "notita" %}
+      <a class="btn btn--secondary btn--block" href="{% url 'notes:update' object.pk %}">
+        {% icon "pencil" 18 %} Editează câmpurile
+      </a>
+    {% elif kind == "programare" %}
+      <a class="btn btn--secondary btn--block" href="{% url 'scheduling:update' object.pk %}">
+        {% icon "pencil" 18 %} Editează câmpurile
+      </a>
+    {% elif kind == "alarma" %}
+      <a class="btn btn--secondary btn--block" href="{% url 'scheduling:reminder_update' object.pk %}">
+        {% icon "pencil" 18 %} Editează câmpurile
+      </a>
+    {% endif %}
+  </div>
+
+  <div class="voice-hint">
+    <div class="recorder" style="padding:0;border:none;background:none" data-recorder
+         data-upload-url="{% url 'assistant:edit_by_voice' kind object.pk %}">
+      <button type="button" class="recorder__button" style="width:76px;height:76px"
+              data-record-toggle data-state="idle"
+              aria-label="Dictează modificarea" aria-pressed="false">{% icon "mic" 30 %}</button>
+      <p class="recorder__timer text-sm" data-timer aria-hidden="true">00:00</p>
+      <p class="recorder__status text-xs" data-status role="status" aria-live="polite"></p>
+      <button type="button" class="btn btn--secondary btn--sm" data-record-cancel hidden>Anulează</button>
+    </div>
+    <div>
+      <h2 style="font-size:var(--fs-md)">Spune ce vrei să modifici</h2>
+      <div class="voice-hint__list">
+        {% for example in examples %}<span>{{ example }}</span>{% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <details>
+    <summary class="btn btn--ghost btn--block" style="list-style:none">
+      {% icon "text" 18 %} Scrie în loc să vorbești
+    </summary>
+    <form class="row" style="margin-top:var(--space-3)"
+          method="post" action="{% url 'assistant:edit_by_voice' kind object.pk %}">
+      {% csrf_token %}
+      <label class="visually-hidden" for="comanda-text">Comanda de modificare</label>
+      <input id="comanda-text" type="text" name="text" style="flex:1;min-height:44px"
+             placeholder="Ex.: Mută alarma cu două zile înainte">
+      <button type="submit" class="btn btn--sm">{% icon "sparkles" 16 %} Aplică</button>
+    </form>
+  </details>
+
+  <div id="zona-schita" aria-live="polite"></div>
+{% endblock %}

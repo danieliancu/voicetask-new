@@ -1,0 +1,14 @@
+{% load icons %}
+<div class="card card--tabless card--flat">
+  <div class="card__body">
+    <span class="card__icon">{% icon "sparkles" 20 %}</span>
+    <div class="card__content">
+      {% if brief and brief.status == "ready" %}
+        <strong>{% icon "check-circle" 16 %} Rezumatul este gata</strong>
+      {% else %}
+        <strong>Se generează rezumatul…</strong>
+        <div class="skeleton skeleton--line" style="width:70%"></div>
+      {% endif %}
+    </div>
+  </div>
+</div>

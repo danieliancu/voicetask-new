@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Setări{% endblock %}
+{% block header %}{% include "core/_appbar.html" with back_url="/" appbar_title="Setări" %}{% endblock %}
+{% block content %}
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% include "core/_form_fields.html" with form=form %}
+    <button type="submit" class="btn btn--block">{% icon "check" 18 %} Salvează</button>
+  </form>
+  <div class="detail-list">
+    <a class="detail-row" href="{% url 'accounts:password_change' %}">
+      <span class="detail-row__icon">{% icon "shield" 20 %}</span>
+      <span><span class="detail-row__label">Securitate</span>
+        <span class="detail-row__value">Schimbă parola</span></span>
+      {% icon "chevron-right" 18 %}
+    </a>
+    <a class="detail-row" href="{% url 'integrations:status' %}">
+      <span class="detail-row__icon">{% icon "mail" 20 %}</span>
+      <span><span class="detail-row__label">Integrări</span>
+        <span class="detail-row__value">Gmail și Google Calendar</span></span>
+      {% icon "chevron-right" 18 %}
+    </a>
+    <a class="detail-row" href="{% url 'notifications:inbox' %}">
+      <span class="detail-row__icon">{% icon "bell" 20 %}</span>
+      <span><span class="detail-row__label">Notificări</span>
+        <span class="detail-row__value">Alarme și push în browser</span></span>
+      {% icon "chevron-right" 18 %}
+    </a>
+  </div>
+{% endblock %}

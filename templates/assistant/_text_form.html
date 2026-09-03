@@ -1,0 +1,7 @@
+{% load icons %}
+<form class="stack" method="post" action="{% url 'assistant:text_command' %}"
+      hx-post="{% url 'assistant:text_command' %}" hx-target="#zona-schita" hx-swap="innerHTML">
+  {% csrf_token %}
+  {% include "core/_form_fields.html" with form=text_form %}
+  <button type="submit" class="btn">{% icon "sparkles" 18 %} Interpretează</button>
+</form>

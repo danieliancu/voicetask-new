@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Coș de gunoi{% endblock %}
+{% block appbar_title %}Coș de gunoi{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/" appbar_title="Coș de gunoi" %}
+{% endblock %}
+
+{% block content %}
+  <p class="message message--info">
+    {% icon "shield" 18 %}
+    <span>Elementele rămân aici {{ retention_days }} de zile, apoi se șterg definitiv.</span>
+  </p>
+
+  <form method="post" action="{% url 'core:trash_restore' %}" data-select-mode>
+    {% csrf_token %}
+    <div class="stack">
+      {% for entry in entries %}
+        <div class="card card--tabless">
+          <div class="card__body">
+            <label class="checkbox">
+              <input type="checkbox" name="element" value="{{ entry.kind }}:{{ entry.pk }}"
+                     aria-label="Selectează {{ entry.title }}">
+            </label>
+            <span class="card__icon">{% icon "trash" 20 %}</span>
+            <span class="card__content">
+              <span class="card__title">{{ entry.title }}</span>
+              <span class="card__meta">
+                <span class="card__meta-item">{% icon "clock" 14 %}Șters {{ entry.deleted_at|zi_relativa }}</span>
+                <span class="card__meta-item">• se elimină definitiv pe {{ entry.expires_at|data_ro }}</span>
+              </span>
+            </span>
+          </div>
+        </div>
+      {% empty %}
+        <p class="empty">{% icon "check-circle" 28 %} Coșul este gol.</p>
+      {% endfor %}
+    </div>
+
+    {% if entries %}
+      <div class="row" style="margin-top:var(--space-4)">
+        <span class="text-sm muted" data-selection-count>Niciun element selectat</span>
+        <span class="spacer"></span>
+        <button type="submit" class="btn" data-selection-submit disabled>
+          {% icon "restore" 18 %} Restaurează
+        </button>
+      </div>
+    {% endif %}
+  </form>
+{% endblock %}

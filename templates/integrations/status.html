@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Gmail și Calendar{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/" appbar_title="Integrări" %}
+{% endblock %}
+
+{% block content %}
+  {% if not oauth_configured %}
+    <p class="message message--info">
+      {% icon "info" 18 %}
+      <span>Nu există credențiale Google pe acest server. Poți activa modul demonstrativ,
+        cu date de exemplu, ca să testezi fluxul complet.</span>
+    </p>
+  {% endif %}
+
+  <div id="cont-gmail">
+    {% include "integrations/_account_card.html" with account=gmail provider="gmail" label="Gmail" icon="mail" %}
+  </div>
+  <div id="cont-calendar">
+    {% include "integrations/_account_card.html" with account=calendar provider="calendar" label="Google Calendar" icon="calendar" %}
+  </div>
+
+  {% if gmail and gmail.is_connected and not gmail_supports_snippets %}
+    <p class="message message--warning">
+      {% icon "alert" 18 %}
+      <span>Permisiunea folosită pentru Gmail este <strong>{{ gmail_scope_level }}</strong>, cea mai
+        restrânsă posibilă. Ea nu returnează fragmente de text, deci câmpul „fragment” rămâne gol.
+        Poți trece la <code>readonly</code> din configurarea serverului dacă vrei fragmente.</span>
+    </p>
+  {% endif %}
+
+  <a class="btn btn--secondary btn--block" href="{% url 'integrations:email_list' %}">
+    {% icon "mail" 18 %} Vezi emailurile importate
+  </a>
+{% endblock %}

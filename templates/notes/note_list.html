@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Notițe{% endblock %}
+{% block appbar_title %}Notițe{% endblock %}
+
+{% block content %}
+  <form class="search-bar" role="search" method="get"
+        hx-get="{% url 'notes:list' %}" hx-target="#lista-notite" hx-push-url="true"
+        hx-trigger="input changed delay:300ms from:find input[name='q'], submit">
+    <span class="search-bar__icon">{% icon "search" 20 %}</span>
+    <label class="visually-hidden" for="cauta-notite">Caută notițe și documente</label>
+    <input id="cauta-notite" type="search" name="q" value="{{ query }}"
+           placeholder="Caută notițe și documente…" autocomplete="off">
+    <input type="hidden" name="categorie" value="{{ selected_category }}">
+    <a class="search-bar__btn" href="{% url 'documents:scan' %}" aria-label="Scanează un document">{% icon "camera" 20 %}</a>
+    <a class="search-bar__btn search-bar__btn--accent" href="{% url 'assistant:capture' %}"
+       aria-label="Notiță nouă prin voce">{% icon "mic" 20 %}</a>
+  </form>
+
+  <div class="chips">
+    <a class="chip {% if not selected_category %}is-active{% endif %}" href="{% url 'notes:list' %}">Toate</a>
+    {% for category in categories %}
+      <a class="chip {% if selected_category == category.slug %}is-active{% endif %}"
+         href="?categorie={{ category.slug }}">{% icon category.icon 16 %}{{ category.name }}</a>
+    {% endfor %}
+    <a class="chip {% if selected_category == 'documente' %}is-active{% endif %}"
+       href="?categorie=documente">{% icon "scan" 16 %}Documente</a>
+  </div>
+
+  <div id="lista-notite">{% include "notes/_note_list.html" %}</div>
+
+  <div class="primary-actions">
+    <a class="big-action" href="{% url 'assistant:capture' %}?tip=create_note">
+      <span class="big-action__circle" style="width:72px;height:72px">{% icon "mic" 30 %}</span>
+      <span class="big-action__title" style="font-size:var(--fs-base)">Notiță nouă</span>
+      <span class="big-action__hint">Apasă și vorbește</span>
+    </a>
+    <a class="big-action big-action--scan" href="{% url 'documents:scan' %}">
+      <span class="big-action__circle" style="width:72px;height:72px">{% icon "camera" 30 %}</span>
+      <span class="big-action__title" style="font-size:var(--fs-base)">Scanează</span>
+      <span class="big-action__hint">Documente cu OCR</span>
+    </a>
+  </div>
+{% endblock %}

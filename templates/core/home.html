@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Voice Task{% endblock %}
+
+{% block content %}
+  <form class="search-bar" role="search" action="{% url 'search:index' %}" method="get">
+    <span class="search-bar__icon">{% icon "search" 20 %}</span>
+    <label class="visually-hidden" for="cautare-acasa">Caută notificări, emailuri sau programări</label>
+    <input id="cautare-acasa" type="search" name="q" placeholder="Caută notificări, emailuri sau programări…"
+           autocomplete="off">
+  </form>
+
+  <div class="account-grid">
+    {% include "integrations/_account_pill.html" with account=gmail_account label="Gmail" icon="mail" provider="gmail" %}
+    {% include "integrations/_account_pill.html" with account=calendar_account label="Google Calendar" icon="calendar" provider="calendar" %}
+  </div>
+
+  <a class="brief-card card--rings" href="{% url 'daily_brief:today' %}">
+    <span class="card__rings" aria-hidden="true">
+      <span class="card__ring"></span><span class="card__ring"></span>
+      <span class="card__ring"></span><span class="card__ring"></span>
+    </span>
+    <span class="brief-card__icon">{% icon "note" 26 %}</span>
+    <span class="brief-card__text">
+      <span class="brief-card__title">Rezumatul zilei</span>
+      <span class="brief-card__meta">
+        Astăzi • {{ brief_counts.appointments|default:0|numar_ro:"programare,programări" }}
+        • {{ brief_counts.todo|default:0|numar_ro:"lucru important,lucruri importante" }}
+      </span>
+    </span>
+    {# Fara nimic de rezumat, butonul de redare nu are ce sa redea. #}
+    {% if brief_has_content %}
+      <span class="brief-card__play">{% icon "play" 20 %} <span>Ascultă</span></span>
+    {% endif %}
+  </a>
+
+  <div class="primary-actions">
+    <a class="big-action" href="{% url 'assistant:capture' %}?mod=voce">
+      <span class="big-action__circle">{% icon "mic" 32 %}</span>
+      <span class="big-action__title">Vorbește</span>
+    </a>
+    <a class="big-action big-action--scan" href="{% url 'documents:scan' %}">
+      <span class="big-action__circle">{% icon "camera" 32 %}</span>
+      <span class="big-action__title">Scanează</span>
+    </a>
+  </div>
+
+  <section class="section" aria-labelledby="titlu-agenda">
+    <div class="section__head">
+      <h2 class="section__title" id="titlu-agenda">{% icon "list" 18 %} Următoarele tale notificări</h2>
+      <a class="section__link" href="{% url 'scheduling:calendar' %}">Vezi toate {% icon "chevron-right" 16 %}</a>
+    </div>
+    <div id="agenda-apropiata"
+         hx-get="{% url 'core:upcoming_partial' %}"
+         hx-trigger="every 60s"
+         hx-swap="innerHTML">
+      {% include "core/_upcoming_list.html" %}
+    </div>
+  </section>
+{% endblock %}

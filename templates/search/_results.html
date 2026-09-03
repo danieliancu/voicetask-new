@@ -1,0 +1,32 @@
+{% load icons ro %}
+{% if results %}
+  <div class="stack">
+    {% for hit in results.hits %}
+      <a class="card" href="{{ hit.url }}" data-tab="{{ hit.color_token }}">
+        <span class="card__body">
+          <span class="card__icon">{% icon hit.source_icon 22 %}</span>
+          <span class="card__content">
+            <span class="card__title">{{ hit.title }}</span>
+            {% if hit.subtitle %}<span class="text-sm muted">{{ hit.subtitle }}</span>{% endif %}
+            <span class="card__meta">
+              {# Sursa este scrisa explicit, nu doar sugerata prin culoare. #}
+              <span class="card__meta-item">{% icon hit.source_icon 14 %}{{ hit.source_label }}</span>
+            </span>
+          </span>
+        </span>
+        <span class="card__tab">{{ hit.tab_label|default:hit.source_label|upper|truncatechars:10 }}</span>
+      </a>
+    {% empty %}
+      <p class="empty">{% icon "search" 28 %} Niciun rezultat pentru „{{ query }}".</p>
+    {% endfor %}
+  </div>
+  {% if results.hits %}
+    <p class="text-xs muted" style="margin-top:var(--space-2)">
+      {{ results.total }} rezultate · căutare {{ results.backend }}
+    </p>
+  {% endif %}
+{% elif query %}
+  <p class="empty">{% icon "search" 28 %} Scrie cel puțin două litere.</p>
+{% else %}
+  <p class="empty">{% icon "search" 28 %} Scrie sau dictează ce cauți.</p>
+{% endif %}

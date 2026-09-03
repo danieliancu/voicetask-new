@@ -1,0 +1,30 @@
+{% load icons %}
+{# Al doilea pas, obligatoriu, pentru comenzile vocale de stergere. #}
+<section class="draft" id="schita-{{ draft.uid }}">
+  <div class="draft__head">
+    <span class="card__icon" data-tab="orange">{% icon "trash" 20 %}</span>
+    <h2 style="font-size:var(--fs-lg)">Confirmi ștergerea?</h2>
+  </div>
+
+  <p class="draft__transcript">{% icon "mic" 14 %} „{{ draft.source_text }}"</p>
+
+  <p class="message message--warning">
+    {% icon "alert" 18 %}
+    <span>Elementul va fi mutat în Coșul de gunoi. Îl poți recupera de acolo.</span>
+  </p>
+
+  <form method="post" action="{% url 'assistant:draft_confirm' draft.uid %}"
+        hx-post="{% url 'assistant:draft_confirm' draft.uid %}"
+        hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML">
+    {% csrf_token %}
+    <input type="hidden" name="confirmare" value="da">
+    <div class="draft__actions">
+      <button type="button" class="btn btn--secondary"
+              hx-post="{% url 'assistant:draft_discard' draft.uid %}"
+              hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML">
+        Anulează
+      </button>
+      <button type="submit" class="btn btn--danger">{% icon "trash" 18 %} Da, șterge</button>
+    </div>
+  </form>
+</section>

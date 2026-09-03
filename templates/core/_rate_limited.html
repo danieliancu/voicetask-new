@@ -1,0 +1,5 @@
+{% load icons %}
+<div class="message message--warning" role="alert">
+  {% icon "clock" 18 %}
+  <span>Prea multe cereri într-un interval scurt. Încearcă din nou în {{ retry_after }} secunde.</span>
+</div>

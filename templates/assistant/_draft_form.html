@@ -1,0 +1,77 @@
+{% load icons %}
+{# Schita editabila. Nimic nu se salveaza pana cand nu apesi „Salvează". #}
+<section class="draft" id="schita-{{ draft.uid }}" aria-labelledby="titlu-schita">
+  <div class="draft__head">
+    <span class="card__icon" data-tab="violet">{% icon "sparkles" 20 %}</span>
+    <h2 id="titlu-schita" style="font-size:var(--fs-lg)">{{ result.label }}</h2>
+    <span class="spacer"></span>
+    <span class="badge {% if draft.confidence < 0.55 %}badge--warning{% else %}badge--accent{% endif %}">
+      Încredere {{ draft.confidence|floatformat:0 }}0%
+    </span>
+  </div>
+
+  {% if draft.source_text %}
+    <p class="draft__transcript">{% icon "mic" 14 %} „{{ draft.source_text }}"</p>
+  {% endif %}
+
+  {% if needs_clarification %}
+    <div class="clarify" role="alert">
+      <p><strong>{% icon "alert" 16 %} {{ draft.clarification_question }}</strong></p>
+
+      {% if candidates %}
+        <div class="stack--tight">
+          {% for candidate in candidates %}
+            <button type="button" class="btn btn--secondary btn--sm"
+                    hx-post="{% url 'assistant:draft_clarify' draft.uid %}"
+                    hx-vals='{"candidat": "{{ candidate.kind }}:{{ candidate.pk }}"}'
+                    hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML">
+              {{ candidate.title }}
+            </button>
+          {% endfor %}
+        </div>
+      {% else %}
+        <form class="row" hx-post="{% url 'assistant:draft_clarify' draft.uid %}"
+              hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML">
+          {% csrf_token %}
+          <label class="visually-hidden" for="raspuns-{{ draft.uid }}">Răspunsul tău</label>
+          <input id="raspuns-{{ draft.uid }}" type="text" name="raspuns" style="flex:1;min-height:44px"
+                 placeholder="Scrie răspunsul…">
+          <button type="submit" class="btn btn--sm">{% icon "check" 16 %} Trimite</button>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if is_destructive %}
+    <p class="message message--warning">
+      {% icon "alert" 18 %}
+      <span>Aceasta este o comandă de ștergere. Va trebui să o confirmi explicit.</span>
+    </p>
+  {% endif %}
+
+  <form method="post" action="{% url 'assistant:draft_confirm' draft.uid %}"
+        hx-post="{% url 'assistant:draft_confirm' draft.uid %}"
+        hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML"
+        class="stack">
+    {% csrf_token %}
+    {% if not is_destructive %}
+      {% include "core/_form_fields.html" with form=form %}
+    {% endif %}
+
+    <div class="draft__actions">
+      <button type="button" class="btn btn--secondary"
+              hx-post="{% url 'assistant:draft_discard' draft.uid %}"
+              hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML">
+        Renunță
+      </button>
+      <button type="submit" class="btn {% if is_destructive %}btn--danger{% endif %}"
+              {% if needs_clarification %}disabled aria-disabled="true"{% endif %}>
+        {% icon "check" 18 %}
+        {% if is_destructive %}Continuă{% else %}Salvează{% endif %}
+      </button>
+    </div>
+    {% if needs_clarification %}
+      <p class="field__help">Răspunde întâi la întrebarea de mai sus.</p>
+    {% endif %}
+  </form>
+</section>

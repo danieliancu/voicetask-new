@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Șterge{% endblock %}
+{% block appbar_title %}Șterge{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url=request.META.HTTP_REFERER|default:"/" appbar_title="Șterge" %}
+{% endblock %}
+
+{% block content %}
+  <p class="muted">Selectează notificările pe care vrei să le ștergi.</p>
+
+  <div class="chips" role="tablist" aria-label="Filtrează după tip">
+    {% for filter in filters %}
+      <a class="chip {% if filter.is_selected %}is-active{% endif %}"
+         href="?tip={{ filter.key }}"
+         role="tab"
+         aria-selected="{% if filter.is_selected %}true{% else %}false{% endif %}">
+        {% if filter.is_selected %}{% icon "check-circle" 16 %}{% endif %}
+        {{ filter.label }} <span class="chip__count">{{ filter.count }}</span>
+      </a>
+    {% endfor %}
+  </div>
+
+  <form method="post" action="{% url 'core:delete_confirm' %}"
+        hx-post="{% url 'core:delete_confirm' %}"
+        hx-target="#dialog-confirmare"
+        hx-swap="innerHTML"
+        data-select-mode>
+    {% csrf_token %}
+
+    <div class="stack">
+      {% for item in items %}
+        <div class="card" data-tab="{{ item.color }}">
+          <div class="card__body">
+            <label class="checkbox">
+              <input type="checkbox" name="element" value="{{ item.kind }}:{{ item.pk }}"
+                     aria-label="Selectează {{ item.title }}">
+              <span class="visually-hidden">Selectează</span>
+            </label>
+            <span class="card__icon">{% icon item.icon 22 %}</span>
+            <span class="card__content">
+              <span class="card__title">{{ item.title }}</span>
+              <span class="card__meta">
+                <span class="card__meta-item">{% icon "calendar" 14 %}{{ item.when|data_zi_ro }}
+                  {% if not item.all_day %}• {{ item.when|ora_ro }}{% endif %}</span>
+              </span>
+              <span class="card__meta">
+                <span class="card__meta-item truncate">{% icon "info" 14 %}{{ item.source_label }}</span>
+              </span>
+            </span>
+          </div>
+          <span class="card__tab">{{ item.tab_label }}</span>
+        </div>
+      {% empty %}
+        <p class="empty">{% icon "check-circle" 28 %} Nu există elemente de șters în această categorie.</p>
+      {% endfor %}
+    </div>
+
+    <p class="message message--info" style="margin-top:var(--space-4)">
+      {% icon "shield" 18 %}
+      <span>Elementele șterse vor fi mutate în Coșul de gunoi și pot fi recuperate timp de
+        <strong>{{ retention_days }} de zile</strong>.</span>
+    </p>
+
+    <div class="row" style="margin-top:var(--space-4)">
+      <span class="text-sm muted" data-selection-count>Niciun element selectat</span>
+      <span class="spacer"></span>
+      <button type="submit" class="btn btn--danger" data-selection-submit disabled>
+        {% icon "trash" 18 %} Șterge selecția
+      </button>
+    </div>
+  </form>
+
+  <div id="dialog-confirmare"></div>
+{% endblock %}

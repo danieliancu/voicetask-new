@@ -1,0 +1,138 @@
+/* Design tokens. Singura sursa de adevar pentru culori, spatii si dimensiuni. */
+
+:root {
+  /* --- suprafete ------------------------------------------------------- */
+  --color-bg: #f6f7fb;
+  --color-bg-elevated: #ffffff;
+  --color-surface-sunken: #eef0f7;
+  --color-border: #e1e5f0;
+  --color-border-strong: #cdd4e6;
+  --color-overlay: rgb(16 22 40 / 55%);
+
+  /* --- text ------------------------------------------------------------ */
+  --color-text: #16203a;
+  --color-text-muted: #5a6684;
+  --color-text-inverse: #ffffff;
+
+  /* --- accent ---------------------------------------------------------- */
+  --color-accent: #5b4ce0;
+  --color-accent-strong: #4235be;
+  --color-accent-soft: #ece9fe;
+  --color-focus: #2b6bff;
+
+  /* --- categorii ------------------------------------------------------- *
+   * Variantele de baza sunt decorative (tab-uri, borduri, puncte).
+   * Textul foloseste exclusiv variantele `-text`, cu contrast >= 4.9:1.    */
+  --color-cat-violet: #5b4ce0;
+  --color-cat-violet-soft: #ece9fe;
+  --color-cat-violet-text: #4235be;
+  --color-cat-blue: #3b82f6;
+  --color-cat-blue-soft: #e3edff;
+  --color-cat-blue-text: #1d4ed8;
+  --color-cat-mint: #17b79a;
+  --color-cat-mint-soft: #ddf5f0;
+  --color-cat-mint-text: #0f7a67;
+  --color-cat-orange: #f08a24;
+  --color-cat-orange-soft: #ffeedc;
+  --color-cat-orange-text: #9a5400;
+
+  /* --- semantice ------------------------------------------------------- */
+  --color-danger: #d33b4e;
+  --color-danger-soft: #fde7ea;
+  --color-danger-text: #a81f31;
+  --color-success: #1a9d6b;
+  --color-success-soft: #e0f6ec;
+  --color-success-text: #0f6b48;
+  --color-warning-soft: #fff4d9;
+  --color-warning-text: #8a5a00;
+
+  /* --- tipografie ------------------------------------------------------ */
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, "Noto Sans", arial, sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-base: 0.9375rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: 1.75rem;
+  --lh-tight: 1.2;
+  --lh-base: 1.5;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* --- spatiere -------------------------------------------------------- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+
+  /* --- forme ----------------------------------------------------------- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  --shadow-xs: 0 1px 2px rgb(22 32 58 / 6%);
+  --shadow-sm: 0 2px 6px rgb(22 32 58 / 7%);
+  --shadow-md: 0 6px 18px rgb(22 32 58 / 9%);
+  --shadow-lg: 0 14px 34px rgb(22 32 58 / 12%);
+
+  /* --- miscare --------------------------------------------------------- */
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* --- straturi -------------------------------------------------------- */
+  --z-base: 0;
+  --z-sticky: 10;
+  --z-nav: 100;
+  --z-sheet: 200;
+  --z-modal: 300;
+  --z-toast: 400;
+  --z-camera: 500;
+
+  /* --- masuri specifice aplicatiei ------------------------------------- */
+  --app-max-width: 430px;
+  --app-desktop-width: 480px;
+  --nav-height: 64px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --tab-width: 26px;
+  --ring-gutter: 22px;
+  --ring-size: 10px;
+  --card-min-h: 84px;
+  --tap-min: 44px;
+}
+
+/* Cardurile isi iau culoarea din tabul lor, prin `data-tab`. */
+[data-tab="violet"] {
+  --tab-color: var(--color-cat-violet);
+  --tab-soft: var(--color-cat-violet-soft);
+  --tab-text: var(--color-cat-violet-text);
+}
+
+[data-tab="blue"] {
+  --tab-color: var(--color-cat-blue);
+  --tab-soft: var(--color-cat-blue-soft);
+  --tab-text: var(--color-cat-blue-text);
+}
+
+[data-tab="mint"] {
+  --tab-color: var(--color-cat-mint);
+  --tab-soft: var(--color-cat-mint-soft);
+  --tab-text: var(--color-cat-mint-text);
+}
+
+[data-tab="orange"] {
+  --tab-color: var(--color-cat-orange);
+  --tab-soft: var(--color-cat-orange-soft);
+  --tab-text: var(--color-cat-orange-text);
+}

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Fără conexiune{% endblock %}
+{% block content %}
+  <div class="empty">
+    {% icon "info" 32 %}
+    <h1>Nu ai conexiune</h1>
+    <p>Paginile vizitate recent rămân disponibile. Reîncearcă după ce revii online.</p>
+    <button type="button" class="btn btn--secondary" onclick="location.reload()">Reîncarcă</button>
+  </div>
+{% endblock %}

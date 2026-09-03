@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Acces interzis{% endblock %}
+{% block content %}
+  <div class="empty">
+    {% icon "alert" 32 %}
+    <h1>Acces interzis</h1>
+    <p>Nu ai dreptul să vezi această pagină.</p>
+    <a class="btn" href="{% url 'core:home' %}">Înapoi acasă</a>
+  </div>
+{% endblock %}

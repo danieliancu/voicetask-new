@@ -1,0 +1,57 @@
+{% load icons ro %}
+<div class="stack">
+  {% for entry in cal.entries %}
+    {% if entry.is_standalone_reminder %}
+      <a class="card" href="{% url 'scheduling:reminder_detail' entry.reminder.pk %}"
+         data-tab="{{ entry.reminder.color_token }}">
+        <span class="card__body">
+          <span class="card__icon">{% icon "bell" 22 %}</span>
+          <span class="card__content">
+            <span class="card__title">{{ entry.reminder.title }}</span>
+            <span class="badge">{% icon "bell" 12 %} Alarmă</span>
+            <span class="card__meta">
+              <span class="card__meta-item">{% icon "clock" 14 %}{{ entry.reminder.remind_at|zi_relativa }}
+                • {{ entry.reminder.remind_at|ora_ro }}</span>
+            </span>
+          </span>
+        </span>
+        <span class="card__tab">{{ entry.reminder.remind_at|eticheta_tab }}</span>
+      </a>
+    {% else %}
+      <a class="card" href="{% url 'scheduling:detail' entry.appointment.pk %}"
+         data-tab="{{ entry.appointment.color_token }}">
+        <span class="card__body">
+          <span class="card__icon">{% icon entry.appointment.icon 22 %}</span>
+          <span class="card__content">
+            <span class="card__title">{{ entry.appointment.title }}</span>
+            {% if entry.appointment.source == "scan" %}
+              <span class="badge badge--accent">{% icon "scan" 12 %} Din document scanat</span>
+            {% elif entry.appointment.is_external %}
+              <span class="badge">{% icon "calendar" 12 %} Google Calendar</span>
+            {% endif %}
+            <span class="card__meta">
+              <span class="card__meta-item">{% icon "calendar" 14 %}{{ entry.appointment.starts_at|zi_relativa }}
+                • {{ entry.appointment.starts_at|ora_ro }}{% if entry.appointment.ends_at %} - {{ entry.appointment.ends_at|ora_ro }}{% endif %}</span>
+            </span>
+            {% if entry.appointment.location %}
+              <span class="card__meta">
+                <span class="card__meta-item truncate">{% icon "map-pin" 14 %}{{ entry.appointment.location }}</span>
+              </span>
+            {% endif %}
+          </span>
+          {% if entry.reminder %}
+            <span class="card__aside">
+              <span class="badge badge--alarm">
+                <span class="row" style="gap:4px">{% icon "bell" 14 %}<strong>{{ entry.reminder.remind_at|ora_ro }}</strong></span>
+                <span class="text-xs">Alarmă</span>
+              </span>
+            </span>
+          {% endif %}
+        </span>
+        <span class="card__tab">{{ entry.appointment.starts_at|eticheta_tab }}</span>
+      </a>
+    {% endif %}
+  {% empty %}
+    <p class="empty">{% icon "calendar" 28 %} Nicio programare pentru {{ cal.title|lower }}.</p>
+  {% endfor %}
+</div>

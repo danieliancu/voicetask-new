@@ -1,0 +1,36 @@
+{% load icons %}
+<dialog class="drawer" id="meniu-lateral" aria-label="Meniu">
+  <div class="drawer__inner">
+    <div class="row">
+      <div class="appbar__title">{% icon "mic" 24 %}<span>Voice Task</span></div>
+      <span class="spacer"></span>
+      <button type="button" class="appbar__action" data-close-dialog aria-label="Închide meniul">{% icon "close" 22 %}</button>
+    </div>
+
+    {% if user.is_authenticated %}
+      <p class="muted text-sm">Conectat ca <strong>{{ prefs.greeting_name|default:user.get_username }}</strong></p>
+      <div class="drawer__separator"></div>
+      <a class="drawer__link" href="{% url 'core:home' %}">{% icon "home" 20 %} Acasă</a>
+      <a class="drawer__link" href="{% url 'daily_brief:today' %}">{% icon "sparkles" 20 %} Rezumatul zilei</a>
+      <a class="drawer__link" href="{% url 'assistant:capture' %}">{% icon "mic" 20 %} Adaugă</a>
+      <a class="drawer__link" href="{% url 'documents:list' %}">{% icon "scan" 20 %} Documente</a>
+      <a class="drawer__link" href="{% url 'integrations:status' %}">{% icon "mail" 20 %} Gmail și Calendar</a>
+      <a class="drawer__link" href="{% url 'notifications:inbox' %}">{% icon "bell" 20 %} Notificări</a>
+      <div class="drawer__separator"></div>
+      <a class="drawer__link" href="{% url 'core:edit_hub' %}">{% icon "pencil" 20 %} Modifică</a>
+      <a class="drawer__link" href="{% url 'core:delete_hub' %}">{% icon "trash" 20 %} Șterge</a>
+      <a class="drawer__link" href="{% url 'core:trash' %}">{% icon "restore" 20 %} Coș de gunoi</a>
+      <div class="drawer__separator"></div>
+      <a class="drawer__link" href="{% url 'accounts:preferences' %}">{% icon "settings" 20 %} Setări</a>
+      <form method="post" action="{% url 'accounts:logout' %}">
+        {% csrf_token %}
+        <button type="submit" class="drawer__link" style="width:100%;border:none;background:none;cursor:pointer">
+          {% icon "logout" 20 %} Ieși din cont
+        </button>
+      </form>
+    {% else %}
+      <a class="drawer__link" href="{% url 'accounts:login' %}">{% icon "logout" 20 %} Intră în cont</a>
+      <a class="drawer__link" href="{% url 'accounts:register' %}">{% icon "plus" 20 %} Creează cont</a>
+    {% endif %}
+  </div>
+</dialog>

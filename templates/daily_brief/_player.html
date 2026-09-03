@@ -1,0 +1,44 @@
+{% load icons %}
+<div class="player card--rings" data-audio-player>
+  <span class="card__rings" aria-hidden="true">
+    <span class="card__ring"></span><span class="card__ring"></span>
+    <span class="card__ring"></span><span class="card__ring"></span>
+  </span>
+
+  {% if brief.audio_file %}
+    <audio data-audio-source preload="metadata" src="{% url 'daily_brief:audio' brief.pk %}"></audio>
+    <button type="button" class="player__button" data-audio-toggle
+            aria-label="Redă rezumatul" aria-pressed="false">
+      <span data-audio-icon-play>{% icon "play" 30 %}</span>
+      <span data-audio-icon-pause hidden>{% icon "pause" 30 %}</span>
+    </button>
+    <div class="player__body">
+      <strong>Ascultă rezumatul</strong>
+      <span class="text-sm muted" data-audio-time>0:00 / --:--</span>
+      <div class="player__progress" data-audio-progress role="slider" tabindex="0"
+           aria-label="Poziția în rezumat" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="player__bar" data-audio-bar></div>
+      </div>
+    </div>
+  {% elif not brief.has_content %}
+    <span class="player__button" aria-hidden="true">{% icon "check-circle" 30 %}</span>
+    <div class="player__body">
+      <strong>Nimic de ascultat astăzi</strong>
+      <span class="text-sm muted">Nu ai programări, alarme, documente sau emailuri de urmărit.</span>
+    </div>
+  {% else %}
+    <span class="player__button" aria-hidden="true">{% icon "note" 30 %}</span>
+    <div class="player__body">
+      <strong>Rezumat text</strong>
+      <span class="text-sm muted">Audio-ul nu este disponibil. Poți citi rezumatul mai jos.</span>
+    </div>
+  {% endif %}
+
+  <form method="post" action="{% url 'daily_brief:regenerate' %}"
+        hx-post="{% url 'daily_brief:regenerate' %}" hx-target="#player-rezumat" hx-swap="innerHTML">
+    {% csrf_token %}
+    <button type="submit" class="appbar__action" aria-label="Regenerează rezumatul">
+      {% icon "refresh" 20 %}
+    </button>
+  </form>
+</div>

@@ -1,0 +1,15 @@
+{% load icons %}
+<li id="element-{{ item.pk }}">
+  <button type="button" class="checkbox"
+          style="border:none;background:none;width:100%;text-align:left"
+          hx-post="{% url 'notes:toggle_item' note.pk item.pk %}"
+          hx-target="#element-{{ item.pk }}" hx-swap="outerHTML"
+          aria-pressed="{% if item.is_done %}true{% else %}false{% endif %}">
+    <span class="card__icon" style="width:26px;height:26px">
+      {% if item.is_done %}{% icon "check" 16 %}{% else %}{% icon "list" 16 %}{% endif %}
+    </span>
+    <span {% if item.is_done %}style="text-decoration:line-through;color:var(--color-text-muted)"{% endif %}>
+      {{ item.text }}
+    </span>
+  </button>
+</li>

@@ -1,0 +1,27 @@
+{% load icons ro %}
+<article class="card" data-tab="{{ reminder.color_token }}" id="alarma-{{ reminder.pk }}">
+  <div class="card__body">
+    <span class="card__icon">{% icon "bell" 22 %}</span>
+    <div class="card__content">
+      <a class="card__title" href="{% url 'scheduling:reminder_detail' reminder.pk %}">{{ reminder.title }}</a>
+      <div class="card__meta">
+        <span class="card__meta-item">{% icon "clock" 14 %}{{ reminder.remind_at|zi_relativa }} • {{ reminder.remind_at|ora_ro }}</span>
+        <span class="badge {% if reminder.is_overdue %}badge--warning{% endif %}">{{ reminder.get_status_display }}</span>
+      </div>
+    </div>
+    <div class="card__aside">
+      <button type="button" class="btn btn--ghost btn--sm"
+              hx-post="{% url 'scheduling:reminder_snooze' reminder.pk %}"
+              hx-target="#alarma-{{ reminder.pk }}" hx-swap="outerHTML"
+              hx-vals='{"minute": 10}'>
+        {% icon "clock" 14 %} Amână
+      </button>
+      <button type="button" class="btn btn--ghost btn--sm"
+              hx-post="{% url 'scheduling:reminder_complete' reminder.pk %}"
+              hx-target="#alarma-{{ reminder.pk }}" hx-swap="outerHTML">
+        {% icon "check" 14 %} Gata
+      </button>
+    </div>
+  </div>
+  <span class="card__tab">{{ reminder.remind_at|eticheta_tab }}</span>
+</article>

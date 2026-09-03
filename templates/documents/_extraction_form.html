@@ -1,0 +1,71 @@
+{% load icons ro %}
+{% comment %}
+  Formularul editabil cu datele extrase. Campurile nesigure sunt marcate vizual
+  si prin text, nu doar prin culoare. Nimic nu se creeaza pana la confirmare.
+{% endcomment %}
+<section class="draft" id="extractie-{{ document.pk }}">
+  <div class="draft__head">
+    <span class="card__icon" data-tab="{{ document.color_token }}">{% icon "sparkles" 20 %}</span>
+    <div>
+      <p class="text-sm muted">Text recunoscut</p>
+      <h2 style="font-size:var(--fs-lg)">{{ document.title|default:"Document scanat" }}</h2>
+    </div>
+    <span class="spacer"></span>
+    <span class="badge {% if document.ocr_confidence < 0.7 %}badge--warning{% endif %}">
+      OCR {{ document.ocr_confidence|procent }}
+    </span>
+  </div>
+
+  <div class="row">
+    {% if document.extracted_data.due_date.value %}
+      <span class="badge">{% icon "calendar" 14 %} Scadență {{ document.extracted_data.due_date.value }}</span>
+    {% elif document.extracted_data.document_date.value %}
+      <span class="badge">{% icon "calendar" 14 %} {{ document.extracted_data.document_date.value }}</span>
+    {% endif %}
+    {% if document.extracted_data.amount.value %}
+      <span class="badge">{% icon "currency" 14 %} {{ document.extracted_data.amount.value }} {{ document.extracted_data.currency.value|default:"" }}</span>
+    {% endif %}
+    <span class="badge badge--accent">{% icon "scan" 14 %} {{ document.get_document_type_display }}</span>
+    {% if document.ocr_provider %}
+      <span class="badge">Motor: {{ document.ocr_provider }}</span>
+    {% endif %}
+  </div>
+
+  {% if form.uncertain_fields %}
+    <p class="message message--warning">
+      {% icon "alert" 18 %}
+      <span>Câmpurile marcate cu <strong>„de verificat”</strong> au fost citite cu încredere scăzută.
+        Verifică-le înainte de a salva.</span>
+    </p>
+  {% endif %}
+
+  <form method="post" action="{% url 'documents:confirm' document.pk %}" class="stack">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      <div class="message message--error" role="alert">{{ form.non_field_errors|join:" " }}</div>
+    {% endif %}
+
+    {% for field in form %}
+        <div class="field {% if field.name in form.uncertain_fields %}field--uncertain{% endif %}">
+          <label class="field__label" for="{{ field.id_for_label }}">
+            {{ field.label }}
+            {% if field.name in form.uncertain_fields %}
+              <span class="field__flag">{% icon "alert" 12 %} de verificat</span>
+            {% endif %}
+          </label>
+          {{ field }}
+          {% if field.help_text %}<p class="field__help">{{ field.help_text }}</p>{% endif %}
+          {% for error in field.errors %}
+            <p class="field__error">{% icon "alert" 14 %} {{ error }}</p>
+          {% endfor %}
+        </div>
+    {% endfor %}
+
+    <p class="message message--info">
+      {% icon "shield" 18 %}
+      <span>Nimic nu a fost creat încă. La salvare vom crea elementele alese mai sus.</span>
+    </p>
+
+    <button type="submit" class="btn btn--block">{% icon "check" 18 %} Salvează și creează</button>
+  </form>
+</section>

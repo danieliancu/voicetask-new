@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Alarme{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/programari/" appbar_title="Alarme" %}
+{% endblock %}
+
+{% block content %}
+  <div class="stack" id="lista-alarme">
+    {% for reminder in reminders %}
+      {% include "scheduling/_reminder_row.html" %}
+    {% empty %}
+      <p class="empty">{% icon "bell" 28 %} Nu ai nicio alarmă.</p>
+    {% endfor %}
+  </div>
+
+  <a class="btn btn--block" href="{% url 'scheduling:reminder_create' %}">{% icon "plus" 18 %} Alarmă nouă</a>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}{{ document }}{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/documente/" appbar_title="Document" %}
+{% endblock %}
+
+{% block content %}
+  {% if document.is_processing %}
+    <div id="stare-document">{% include "documents/_status.html" %}</div>
+  {% else %}
+    {% include "documents/_extraction_form.html" %}
+  {% endif %}
+
+  <details>
+    <summary class="btn btn--ghost btn--block" style="list-style:none">
+      {% icon "image" 18 %} Vezi fotografia originală
+    </summary>
+    <img src="{% url 'documents:original_image' document.pk %}" alt="Fotografia documentului"
+         style="border-radius:var(--radius-lg);margin-top:var(--space-3)" loading="lazy">
+  </details>
+
+  {% if document.extracted_text %}
+    <details>
+      <summary class="btn btn--ghost btn--block" style="list-style:none">
+        {% icon "text" 18 %} Vezi textul recunoscut
+      </summary>
+      {# Textul provine din OCR: se afiseaza escapat, niciodata ca HTML. #}
+      <pre class="draft__transcript" style="white-space:pre-wrap;margin-top:var(--space-3)">{{ document.extracted_text }}</pre>
+    </details>
+  {% endif %}
+
+  <div class="row">
+    <form method="post" action="{% url 'documents:reprocess' document.pk %}">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--secondary btn--sm">{% icon "refresh" 16 %} Reprocesează</button>
+    </form>
+    <span class="spacer"></span>
+    <button type="button" class="btn btn--danger btn--sm"
+            hx-get="{% url 'documents:delete' document.pk %}"
+            hx-target="#dialog-confirmare" hx-swap="innerHTML">
+      {% icon "trash" 16 %} Șterge
+    </button>
+  </div>
+  <div id="dialog-confirmare"></div>
+{% endblock %}

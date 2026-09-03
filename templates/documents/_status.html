@@ -1,0 +1,29 @@
+{% load icons %}
+<div class="card card--tabless card--flat"
+     {% if document.is_processing %}
+       hx-get="{% url 'documents:status' document.pk %}"
+       hx-trigger="load delay:900ms"
+       hx-swap="outerHTML"
+     {% endif %}>
+  <div class="card__body">
+    <span class="card__icon">{% icon "scan" 22 %}</span>
+    <div class="card__content">
+      {% if document.is_processing %}
+        <strong>Se procesează documentul…</strong>
+        <p class="text-sm muted">Corectăm perspectiva, îmbunătățim contrastul și citim textul.</p>
+        <div class="skeleton skeleton--line" style="width:80%"></div>
+        <div class="skeleton skeleton--line" style="width:60%"></div>
+      {% elif document.processing_status == "failed" %}
+        <strong class="field__error">{% icon "alert" 16 %} {{ document.processing_error }}</strong>
+        <form method="post" action="{% url 'documents:reprocess' document.pk %}"
+              hx-post="{% url 'documents:reprocess' document.pk %}" hx-swap="outerHTML">
+          {% csrf_token %}
+          <button type="submit" class="btn btn--secondary btn--sm">{% icon "refresh" 16 %} Încearcă din nou</button>
+        </form>
+      {% else %}
+        <strong>{% icon "check-circle" 16 %} Document procesat</strong>
+        <a class="btn btn--sm" href="{% url 'documents:detail' document.pk %}">Verifică datele extrase</a>
+      {% endif %}
+    </div>
+  </div>
+</div>

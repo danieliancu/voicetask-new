@@ -1,0 +1,178 @@
+/* Antet si navigatia inferioara. */
+
+.appbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
+  display: grid;
+  grid-template-columns: var(--tap-min) minmax(0, 1fr) var(--tap-min);
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-bg);
+  border-bottom: 1px solid transparent;
+}
+
+.appbar--bordered {
+  border-bottom-color: var(--color-border);
+}
+
+.appbar__title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  /* Titlurile lungi („Fotografiază documentul") trebuie să încapă între cele
+     două butoane de 44 px, fără să fie tăiate. */
+  font-size: clamp(1rem, 4.6vw, var(--fs-xl));
+  font-weight: var(--fw-bold);
+  color: var(--color-text);
+  min-width: 0;
+}
+
+.appbar__title .icon {
+  color: var(--color-accent);
+}
+
+.appbar__action {
+  display: grid;
+  place-items: center;
+  width: var(--tap-min);
+  height: var(--tap-min);
+  border-radius: var(--radius-md);
+  border: none;
+  background: transparent;
+  color: var(--color-text);
+  cursor: pointer;
+  position: relative;
+}
+
+.appbar__action:hover {
+  background: var(--color-surface-sunken);
+}
+
+.appbar__badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 4px;
+  border-radius: var(--radius-pill);
+  background: var(--color-accent);
+  color: var(--color-text-inverse);
+  font-size: 10px;
+  font-weight: var(--fw-bold);
+  display: grid;
+  place-items: center;
+}
+
+/* --- navigatie inferioara ---------------------------------------------- *
+ * Cele patru destinatii sunt fixe pe toate ecranele principale.
+ * „Modifică" si „Șterge" sunt actiuni contextuale, nu destinatii.          */
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: var(--app-max-width);
+  z-index: var(--z-nav);
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: var(--color-bg-elevated);
+  border-top: 1px solid var(--color-border);
+  padding-bottom: var(--safe-bottom);
+}
+
+@media (width >= 900px) {
+  .bottom-nav {
+    max-width: var(--app-desktop-width);
+  }
+}
+
+.bottom-nav__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: var(--nav-height);
+  padding: var(--space-2) var(--space-1);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-medium);
+  color: var(--color-text-muted);
+  position: relative;
+}
+
+.bottom-nav__item:hover {
+  text-decoration: none;
+  color: var(--color-text);
+}
+
+.bottom-nav__item[aria-current="page"] {
+  color: var(--color-accent);
+  font-weight: var(--fw-semibold);
+}
+
+/* Starea activa este marcata si prin bara de sus, nu doar prin culoare. */
+.bottom-nav__item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  background: var(--color-accent);
+}
+
+/* --- meniu lateral ------------------------------------------------------ */
+
+.drawer {
+  border: none;
+  padding: 0;
+  margin: 0;
+  width: min(320px, 88vw);
+  max-width: none;
+  height: 100dvh;
+  max-height: none;
+  margin-right: auto;
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-lg);
+}
+
+.drawer::backdrop {
+  background: var(--color-overlay);
+}
+
+.drawer__inner {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-5) var(--space-4);
+}
+
+.drawer__link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: var(--tap-min);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+  color: var(--color-text);
+  font-weight: var(--fw-medium);
+}
+
+.drawer__link:hover {
+  background: var(--color-surface-sunken);
+  text-decoration: none;
+}
+
+.drawer__separator {
+  height: 1px;
+  background: var(--color-border);
+  margin-block: var(--space-2);
+}

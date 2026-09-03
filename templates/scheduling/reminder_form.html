@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/programari/alarme/" appbar_title=title %}
+{% endblock %}
+
+{% block content %}
+  <form method="post" class="stack">
+    {% csrf_token %}
+    {% include "core/_form_fields.html" with form=form %}
+    <div class="row">
+      <a class="btn btn--secondary" href="{% url 'scheduling:reminder_list' %}">Anulează</a>
+      <span class="spacer"></span>
+      <button type="submit" class="btn">{% icon "check" 18 %} Salvează</button>
+    </div>
+  </form>
+{% endblock %}

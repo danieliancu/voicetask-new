@@ -1,0 +1,244 @@
+/* Cardul: metafora de carnet, cu tab colorat pe marginea dreapta.
+ *
+ * Structura de grid garanteaza ca toate cardurile dintr-o lista au aceeasi
+ * latime si acelasi tab: coloana tabului este fixa (`--tab-width`), continutul
+ * primeste `minmax(0, 1fr)` ca textul lung sa nu impinga cardul in latime.
+ */
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--tab-width);
+  align-items: stretch;
+  width: 100%;
+  min-height: var(--card-min-h);
+  background: var(--color-bg-elevated);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition:
+    box-shadow var(--dur-base) var(--ease-standard),
+    transform var(--dur-base) var(--ease-standard);
+}
+
+.card--flat {
+  box-shadow: none;
+}
+
+.card--tabless {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+a.card,
+button.card {
+  text-align: left;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+a.card:hover,
+button.card:hover {
+  box-shadow: var(--shadow-md);
+  text-decoration: none;
+}
+
+a.card:active,
+button.card:active {
+  transform: translateY(1px);
+}
+
+.card__body {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-width: 0;
+}
+
+.card__icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  background: var(--tab-soft, var(--color-accent-soft));
+  color: var(--tab-text, var(--color-accent-strong));
+  flex: none;
+}
+
+.card__content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+  flex: 1;
+}
+
+.card__title {
+  font-size: var(--fs-md);
+  font-weight: var(--fw-semibold);
+  color: var(--color-text);
+  overflow-wrap: anywhere;
+}
+
+.card__meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  font-size: var(--fs-sm);
+  color: var(--color-text-muted);
+}
+
+.card__meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.card__aside {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-1);
+  flex: none;
+}
+
+/* Tabul lateral: text vertical, latime fixa pentru toate cardurile. */
+.card__tab {
+  display: grid;
+  place-items: center;
+  background: var(--tab-color, var(--color-accent));
+  color: var(--color-text-inverse);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  letter-spacing: 0.06em;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding-block: var(--space-2);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.card__tab--muted {
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+}
+
+/* Inelele de dosar, in stanga cardului. */
+.card--rings {
+  position: relative;
+  padding-left: var(--ring-gutter);
+}
+
+.card__rings {
+  position: absolute;
+  left: calc(var(--ring-gutter) / 2);
+  top: var(--space-4);
+  bottom: var(--space-4);
+  width: var(--ring-size);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.card__ring {
+  width: var(--ring-size);
+  height: var(--ring-size);
+  border-radius: 50%;
+  border: 2px solid var(--color-border-strong);
+  background: var(--color-surface-sunken);
+}
+
+/* Teancul de file din spatele unui card fixat. */
+.card-stack {
+  position: relative;
+  padding-bottom: 10px;
+}
+
+.card-stack::before,
+.card-stack::after {
+  content: "";
+  position: absolute;
+  left: var(--space-3);
+  right: var(--space-3);
+  height: 12px;
+  border: 1px solid var(--color-border);
+  border-top: none;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+  background: var(--color-bg-elevated);
+  z-index: -1;
+}
+
+.card-stack::before {
+  bottom: 5px;
+}
+
+.card-stack::after {
+  left: var(--space-5);
+  right: var(--space-5);
+  bottom: 0;
+  opacity: 0.7;
+}
+
+/* Insigne si etichete. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-pill);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-semibold);
+  background: var(--color-surface-sunken);
+  color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+.badge--accent {
+  background: var(--color-accent-soft);
+  color: var(--color-accent-strong);
+}
+
+.badge--alarm {
+  background: var(--color-cat-violet-soft);
+  color: var(--color-cat-violet-text);
+  flex-direction: column;
+  gap: 0;
+  line-height: 1.15;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-md);
+}
+
+.badge--danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger-text);
+}
+
+.badge--success {
+  background: var(--color-success-soft);
+  color: var(--color-success-text);
+}
+
+.badge--warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning-text);
+}
+
+.badge--demo {
+  background: var(--color-cat-orange-soft);
+  color: var(--color-cat-orange-text);
+}
+
+/* Punctul de stare: dublat mereu de text, niciodata singurul indiciu. */
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tab-color, var(--color-accent));
+  flex: none;
+}

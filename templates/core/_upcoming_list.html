@@ -1,0 +1,8 @@
+{% load icons %}
+<div class="stack">
+  {% for item in upcoming %}
+    {% include "core/_item_card.html" %}
+  {% empty %}
+    <p class="empty">{% icon "calendar" 28 %} Nu ai nimic programat în perioada următoare.</p>
+  {% endfor %}
+</div>

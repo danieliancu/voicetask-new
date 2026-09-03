@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% load icons %}
+{% block title %}Emailuri{% endblock %}
+{% block header %}{% include "core/_appbar.html" with back_url="/integrari/" appbar_title="Emailuri" %}{% endblock %}
+{% block content %}
+  <div class="chips">
+    <a class="chip {% if not selected_status %}is-active{% endif %}" href="{% url 'integrations:email_list' %}">Toate</a>
+    {% for value, label in statuses %}
+      <a class="chip {% if selected_status == value %}is-active{% endif %}" href="?stare={{ value }}">{{ label }}</a>
+    {% endfor %}
+  </div>
+  <div class="stack">
+    {% for email in emails %}{% include "integrations/_email_row.html" %}{% empty %}
+      <p class="empty">{% icon "mail" 28 %} Nu există emailuri importate.</p>
+    {% endfor %}
+  </div>
+{% endblock %}

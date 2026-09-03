@@ -1,0 +1,12 @@
+{% load icons %}
+{% if recent %}
+  <div class="chips">
+    {% for item in recent %}
+      <a class="chip" href="{% url 'search:index' %}?q={{ item.query|urlencode }}">
+        {% icon "clock" 14 %}{{ item.query }}
+      </a>
+    {% endfor %}
+  </div>
+{% else %}
+  <p class="text-sm muted">Nu ai încă nicio căutare salvată.</p>
+{% endif %}

@@ -1,0 +1,39 @@
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = [".venv", "staticfiles", "*/migrations/*"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "DJ", "B", "C4", "SIM", "RUF"]
+ignore = [
+  # Textele afisate utilizatorului sunt in romana; RUF001/RUF002/RUF003
+  # ar semnala ghilimelele si diacriticele ca fiind caractere „ambigue".
+  "RUF001",
+  "RUF002",
+  "RUF003",
+  # Django cere `blank=True` fara `null=True` pe campurile text.
+  "DJ001",
+  # `zip(strict=)` nu este relevant pentru perechile fixe folosite aici.
+  "B905",
+  # Django cere liste in `Meta` (constraints, indexes, ordering); RUF012 le
+  # semnaleaza ca „mutable class default", ceea ce nu se aplica aici.
+  "RUF012",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"config/settings/*.py" = ["F403", "F405"]
+"conftest.py" = ["E402"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["apps", "config"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings.test"
+python_files = ["test_*.py", "tests.py"]
+testpaths = ["apps"]
+addopts = "-q --strict-markers"
+markers = [
+  "slow: teste lente (motorul OCR real); se sar implicit",
+  "pg_only: necesita PostgreSQL; se sar pe SQLite",
+]
+filterwarnings = ["error::DeprecationWarning:apps.*"]

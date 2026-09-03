@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% load icons ro %}
+
+{% block title %}Programări{% endblock %}
+{% block appbar_title %}Programări{% endblock %}
+
+{% block content %}
+  {% include "scheduling/_week_strip.html" with cal=cal %}
+
+  <nav class="segmented" aria-label="Mod de vizualizare">
+    {% for key, label in views %}
+      <a class="segmented__item" href="?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
+         hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
+         hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
+         aria-pressed="{% if cal.view == key %}true{% else %}false{% endif %}">
+        {% icon "calendar" 16 %}{{ label }}
+      </a>
+    {% endfor %}
+  </nav>
+
+  {% if brief %}
+    <a class="brief-card" href="{% url 'daily_brief:today' %}">
+      <span class="brief-card__icon">{% icon "note" 24 %}</span>
+      <span class="brief-card__text">
+        <span class="brief-card__title" style="font-size:var(--fs-md)">Rezumatul zilei</span>
+        <span class="brief-card__meta">
+          {{ brief.counts.appointments|default:0|numar_ro:"programare,programări" }} astăzi
+        </span>
+      </span>
+      <span class="brief-card__play">{% icon "play" 18 %} Ascultă</span>
+    </a>
+  {% endif %}
+
+  <section class="section" aria-labelledby="titlu-agenda">
+    <div class="section__head">
+      <h2 class="section__title" id="titlu-agenda">Agenda · {{ cal.title }}</h2>
+      <span class="text-sm muted">Ordonate după oră</span>
+    </div>
+    <div id="agenda">
+      {% if cal.view == "luna" %}
+        {% include "scheduling/_month_grid.html" with cal=cal %}
+      {% else %}
+        {% include "scheduling/_agenda.html" with cal=cal %}
+      {% endif %}
+    </div>
+  </section>
+
+  {% if upcoming_reminders %}
+    <section class="section" aria-labelledby="titlu-alarme">
+      <div class="section__head">
+        <h2 class="section__title" id="titlu-alarme">{% icon "bell" 18 %} Următoarele alarme</h2>
+        <a class="section__link" href="{% url 'scheduling:reminder_list' %}">Vezi toate {% icon "chevron-right" 16 %}</a>
+      </div>
+      <div class="chips">
+        {% for reminder in upcoming_reminders %}
+          <a class="chip" href="{% url 'scheduling:reminder_detail' reminder.pk %}">
+            {% icon "bell" 14 %}{{ reminder.title|truncatechars:22 }}
+            <span class="chip__count">{{ reminder.remind_at|zi_relativa }}, {{ reminder.remind_at|ora_ro }}</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <div class="row">
+    <a class="btn btn--block" href="{% url 'assistant:capture' %}?tip=create_appointment">
+      {% icon "mic" 20 %} Programare nouă
+    </a>
+  </div>
+  <div class="row">
+    <a class="btn btn--secondary btn--block" href="{% url 'documents:scan' %}">
+      {% icon "camera" 20 %} Scanează invitație
+    </a>
+    <a class="btn btn--ghost btn--block" href="{% url 'scheduling:create' %}">
+      {% icon "plus" 20 %} Adaugă manual
+    </a>
+  </div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% load icons %}
+{# Dialogul obligatoriu de confirmare. Nicio stergere nu se face fara el. #}
+<dialog class="dialog" data-autoshow aria-labelledby="titlu-confirmare">
+  <form class="dialog__inner" method="post" action="{{ action_url }}">
+    {% csrf_token %}
+    <div class="row">
+      <span class="card__icon" data-tab="orange">{% icon "trash" 22 %}</span>
+      <h2 id="titlu-confirmare" style="font-size:var(--fs-lg)">
+        {% if objects|length == 1 %}Ștergi acest element?{% else %}Ștergi {{ objects|length }} elemente?{% endif %}
+      </h2>
+    </div>
+
+    <ul class="stack--tight">
+      {% for object in objects %}
+        <li class="row">
+          <span class="dot" aria-hidden="true"></span>
+          <strong class="truncate">{{ object.title }}</strong>
+          <input type="hidden" name="element" value="{{ object.kind }}:{{ object.pk }}">
+        </li>
+      {% empty %}
+        <li class="muted">Nu ai selectat niciun element.</li>
+      {% endfor %}
+    </ul>
+
+    {% if external_warning %}
+      <p class="message message--warning">
+        {% icon "alert" 18 %}
+        <span>Acest element este sincronizat cu Google Calendar. Ștergerea aici nu îl elimină
+          automat din calendarul extern.</span>
+      </p>
+    {% endif %}
+
+    <p class="message message--info">
+      {% icon "shield" 18 %}
+      <span>Elementul ajunge în Coșul de gunoi și poate fi recuperat timp de
+        <strong>{{ retention_days }} de zile</strong>.</span>
+    </p>
+
+    <div class="dialog__actions">
+      <button type="button" class="btn btn--secondary" data-close-dialog>Anulează</button>
+      <button type="submit" class="btn btn--danger" {% if not objects %}disabled{% endif %}>
+        {% icon "trash" 18 %} Șterge
+      </button>
+    </div>
+  </form>
+</dialog>

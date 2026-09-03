@@ -1,0 +1,6 @@
+{% load icons %}
+<div class="stack">
+  {% for notification in notifications %}{% include "notifications/_notification_row.html" %}{% empty %}
+    <p class="empty">{% icon "bell" 28 %} Nu ai notificări.</p>
+  {% endfor %}
+</div>

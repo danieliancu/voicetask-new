@@ -1,0 +1,38 @@
+{% load icons ro %}
+<article class="card {% if note.is_pinned %}card--rings{% endif %}" data-tab="{{ note.color_token }}"
+         id="notita-{{ note.pk }}">
+  {% if note.is_pinned %}
+    <span class="card__rings" aria-hidden="true">
+      <span class="card__ring"></span><span class="card__ring"></span>
+      <span class="card__ring"></span><span class="card__ring"></span>
+    </span>
+  {% endif %}
+  <div class="card__body">
+    <span class="card__icon">{% icon note.category.icon|default:"note" 22 %}</span>
+    <div class="card__content">
+      <a class="card__title" href="{% url 'notes:detail' note.pk %}">{{ note.title }}</a>
+      {% if note.preview %}<p class="text-sm muted">{{ note.preview }}</p>{% endif %}
+      <div class="card__meta">
+        {% if note.source == "scan" %}
+          <span class="badge">{% icon "scan" 12 %} Document scanat</span>
+        {% elif note.source == "voice" %}
+          <span class="badge">{% icon "mic" 12 %} Dictată</span>
+        {% endif %}
+        <span class="card__meta-item">{% icon "clock" 14 %}Actualizat {{ note.updated_at|zi_relativa|lower }}</span>
+      </div>
+    </div>
+    <div class="card__aside">
+      <button type="button" class="appbar__action"
+              hx-post="{% url 'notes:toggle_pin' note.pk %}"
+              hx-target="#notita-{{ note.pk }}"
+              hx-swap="outerHTML"
+              aria-label="{% if note.is_pinned %}Anulează fixarea{% else %}Fixează notița{% endif %}"
+              aria-pressed="{% if note.is_pinned %}true{% else %}false{% endif %}">
+        {% icon "pin" 18 %}
+      </button>
+    </div>
+  </div>
+  <span class="card__tab {% if not note.category %}card__tab--muted{% endif %}">
+    {% if note.source == "scan" %}DOCUMENT{% else %}{{ note.category.name|default:"NOTIȚE"|upper|truncatechars:12 }}{% endif %}
+  </span>
+</article>

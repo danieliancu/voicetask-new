@@ -1,0 +1,51 @@
+{% load static icons %}<!doctype html>
+<html lang="ro">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#5B4CE0">
+  <title>VoiceTask | Personal Assistant</title>
+  <link rel="manifest" href="{% url 'manifest' %}">
+  <link rel="icon" href="{% static 'img/icons/mic.svg' %}" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="{% static 'img/icons/icon-192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/vendor/htmx-2.0.4.min.js' %}" defer></script>
+  <script src="{% static 'js/main.js' %}" type="module"></script>
+</head>
+<body data-page="{% block page_id %}{{ page|default:'' }}{% endblock %}">
+  <a class="skip-link" href="#continut">Sari la conținut</a>
+
+  <div class="app {% if hide_nav %}app--no-nav{% endif %}">
+    {% block header %}
+      {% include "core/_appbar.html" %}
+    {% endblock %}
+
+    <main class="app__main {% block main_class %}{% endblock %}" id="continut">
+      {% if messages %}
+        <ul class="messages" role="status">
+          {% for message in messages %}
+            <li class="message message--{{ message.tags|default:'info' }}">
+              {% if message.tags == 'success' %}{% icon "check-circle" 18 %}
+              {% elif message.tags == 'error' %}{% icon "alert" 18 %}
+              {% else %}{% icon "info" 18 %}{% endif %}
+              <span>{{ message }}</span>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+
+      {# Regiunea prin care cititoarele de ecran afla ce se intampla in fundal. #}
+      <div id="anunturi" class="visually-hidden" role="status" aria-live="polite"></div>
+
+      {% block content %}{% endblock %}
+    </main>
+
+    {% block bottom_nav %}
+      {% if user.is_authenticated %}{% include "core/_bottom_nav.html" %}{% endif %}
+    {% endblock %}
+  </div>
+
+  {% include "core/_drawer.html" %}
+  {% block scripts %}{% endblock %}
+</body>
+</html>

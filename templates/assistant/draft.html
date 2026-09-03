@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+
+{% block title %}Verifică înainte de salvare{% endblock %}
+
+{% block header %}
+  {% include "core/_appbar.html" with back_url="/asistent/inregistreaza/" appbar_title="Verifică" %}
+{% endblock %}
+
+{% block content %}
+  <p class="muted text-sm">Verifică detaliile și apasă „Salvează”. Nimic nu s-a salvat încă.</p>
+  {% include "assistant/_draft_form.html" %}
+{% endblock %}

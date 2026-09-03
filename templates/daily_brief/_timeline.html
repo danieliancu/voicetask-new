@@ -1,0 +1,17 @@
+{% load icons %}
+<div class="timeline">
+  {% for item in timeline %}
+    <div class="timeline__item">
+      <span class="timeline__time">{{ item.time }}</span>
+      <span class="timeline__marker" aria-hidden="true"><span class="dot"></span></span>
+      <span>
+        <a class="timeline__title" href="{% url 'scheduling:detail' item.id %}">{{ item.title }}</a>
+        {% if item.location %}
+          <span class="card__meta"><span class="card__meta-item">{% icon "map-pin" 14 %}{{ item.location }}</span></span>
+        {% endif %}
+      </span>
+    </div>
+  {% empty %}
+    <p class="muted text-sm">Nicio programare astăzi.</p>
+  {% endfor %}
+</div>

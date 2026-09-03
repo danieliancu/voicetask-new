@@ -1,0 +1,17 @@
+{% load icons %}
+<div class="week-strip" role="group" aria-label="Săptămâna curentă">
+  {% for cell in cal.week %}
+    <a class="week-day" href="?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
+       hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
+       hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
+       {% if cell.is_selected %}aria-current="date"{% endif %}>
+      <span>{{ cell.weekday_short }}</span>
+      <span class="week-day__num">{{ cell.day|date:"j" }}</span>
+      {% if cell.count %}
+        <span class="week-day__dot" aria-hidden="true"></span>
+        <span class="visually-hidden">{{ cell.count }} programări</span>
+      {% endif %}
+      {% if cell.is_today %}<span class="visually-hidden">(astăzi)</span>{% endif %}
+    </a>
+  {% endfor %}
+</div>

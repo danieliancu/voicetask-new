@@ -1,0 +1,41 @@
+{% load icons %}
+<div class="card card--tabless card--flat" id="stare-sincronizare-continut">
+  <div class="card__body">
+    <span class="card__icon">{% icon "calendar" 20 %}</span>
+    <div class="card__content">
+      {% if result and result.error %}
+        <p class="field__error">{% icon "alert" 14 %} {{ result.error }}</p>
+      {% elif result %}
+        <p class="confidence confidence--ok">{% icon "check-circle" 14 %} Sincronizat cu Google Calendar.</p>
+      {% elif appointment.is_external %}
+        <p class="text-sm">Sincronizată cu Google Calendar.</p>
+      {% else %}
+        <p class="text-sm">Nu este trimisă în Google Calendar.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if needs_confirm %}
+    <form class="card__body" method="post" action="{% url 'scheduling:push_external' appointment.pk %}"
+          hx-post="{% url 'scheduling:push_external' appointment.pk %}"
+          hx-target="#stare-sincronizare" hx-swap="innerHTML"
+          style="flex-direction:column;align-items:stretch;gap:var(--space-3)">
+      {% csrf_token %}
+      <p class="message message--warning">
+        {% icon "alert" 18 %}
+        <span>Această acțiune scrie în calendarul tău Google. Confirmi?</span>
+      </p>
+      <input type="hidden" name="confirm" value="da">
+      <button type="submit" class="btn btn--sm">{% icon "check" 16 %} Da, trimite în calendar</button>
+    </form>
+  {% elif not result %}
+    <form class="card__body" method="post" action="{% url 'scheduling:push_external' appointment.pk %}"
+          hx-post="{% url 'scheduling:push_external' appointment.pk %}"
+          hx-target="#stare-sincronizare" hx-swap="innerHTML">
+      {% csrf_token %}
+      <button type="submit" class="btn btn--secondary btn--sm">
+        {% icon "refresh" 16 %} {% if appointment.is_external %}Actualizează în calendar{% else %}Trimite în calendar{% endif %}
+      </button>
+    </form>
+  {% endif %}
+</div>

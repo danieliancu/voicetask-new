@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+{% load icons %}
+
+{% block title %}Caută{% endblock %}
+{% block appbar_title %}Caută{% endblock %}
+
+{% block content %}
+  <form class="search-bar" role="search" id="formular-cautare"
+        hx-get="{% url 'search:results' %}"
+        hx-target="#rezultate" hx-swap="innerHTML"
+        hx-trigger="input changed delay:300ms from:find input[name='q'], change from:find select, submit"
+        hx-indicator="#indicator-cautare">
+    <span class="search-bar__icon">{% icon "search" 20 %}</span>
+    <label class="visually-hidden" for="cautare-globala">Caută notițe, programări, emailuri, documente</label>
+    <input id="cautare-globala" type="search" name="q" value="{{ query }}"
+           placeholder="Caută notițe, programări, emailuri, documente…" autocomplete="off">
+    <button type="button" class="search-bar__btn search-bar__btn--accent"
+            data-voice-search aria-label="Caută prin voce">{% icon "mic" 20 %}</button>
+    <a class="search-bar__btn" href="{% url 'documents:scan' %}" aria-label="Scanează un document">{% icon "scan" 20 %}</a>
+  </form>
+
+  <div class="chips" role="group" aria-label="Filtrează sursele">
+    <button type="button" class="chip is-active" form="formular-cautare"
+            data-source-all aria-pressed="true">Toate</button>
+    {% for key, label, icon_name in filters %}
+      <label class="chip {% if key in selected_sources %}is-active{% endif %}">
+        <input type="checkbox" name="sursa" value="{{ key }}" form="formular-cautare"
+               class="visually-hidden" {% if key in selected_sources %}checked{% endif %}>
+        {% icon icon_name 16 %}{{ label }}
+      </label>
+    {% endfor %}
+  </div>
+
+  {% if brief_highlights %}
+    <section class="section" aria-labelledby="titlu-rezumat-azi">
+      <h2 class="section__title" id="titlu-rezumat-azi">Din rezumatul de azi</h2>
+      <div class="stack">
+        {% for item in brief_highlights %}
+          <a class="card" href="{% url 'daily_brief:today' %}" data-tab="mint">
+            <span class="card__body">
+              <span class="card__icon">{% icon "note" 20 %}</span>
+              <span class="card__content">
+                <span class="card__title">{{ item.title }}</span>
+                <span class="card__meta"><span class="card__meta-item">{% icon "clock" 14 %}{{ item.detail }}</span></span>
+              </span>
+            </span>
+            <span class="card__tab">REZUMAT</span>
+          </a>
+        {% endfor %}
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="section" aria-labelledby="titlu-rezultate">
+    <div class="section__head">
+      <h2 class="section__title" id="titlu-rezultate">Rezultate</h2>
+      <label class="text-sm muted">
+        Sortare:
+        <select name="sortare" form="formular-cautare" style="border:none;background:transparent;font-weight:600">
+          {% for value, label in sort_choices %}
+            <option value="{{ value }}" {% if sort == value %}selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </label>
+    </div>
+    <div id="indicator-cautare" class="htmx-indicator">
+      <div class="skeleton skeleton--card"></div>
+    </div>
+    <div id="rezultate" aria-live="polite">
+      {% include "search/_results.html" %}
+    </div>
+  </section>
+
+  <section class="section" aria-labelledby="titlu-recente">
+    <div class="section__head">
+      <h2 class="section__title" id="titlu-recente">Căutări recente</h2>
+      <form method="post" action="{% url 'search:clear_recent' %}"
+            hx-post="{% url 'search:clear_recent' %}" hx-target="#cautari-recente" hx-swap="innerHTML">
+        {% csrf_token %}
+        <button type="submit" class="section__link">Șterge tot {% icon "chevron-right" 16 %}</button>
+      </form>
+    </div>
+    <div id="cautari-recente">{% include "search/_recent.html" %}</div>
+  </section>
+{% endblock %}
