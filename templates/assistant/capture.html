@@ -27,6 +27,12 @@
       <span>Transcrierea rulează în mod demonstrativ: nu există o cheie OpenAI configurată,
         deci textul recunoscut provine dintr-un set de exemple. Restul fluxului este real.</span>
     </p>
+  {% elif transcription_unavailable %}
+    <p class="message message--warning">
+      {% icon "info" 18 %}
+      <span>Transcrierea vocală nu este disponibilă acum: serviciul nu este configurat pe
+        acest server. Poți scrie comanda mai jos — restul fluxului funcționează normal.</span>
+    </p>
   {% endif %}
 
   <div class="recorder" data-recorder
@@ -37,14 +43,17 @@
       {% icon "mic" 44 %}
     </button>
     <p class="recorder__timer" data-timer aria-hidden="true">00:00</p>
-    <div class="recorder__level" aria-hidden="true"><div class="recorder__level-bar" data-level></div></div>
+    {# Nivelul microfonului la inregistrare, progresul verde la interpretare. #}
+    <div class="recorder__level" data-level-track aria-hidden="true">
+      <div class="recorder__level-bar" data-level></div>
+    </div>
     <p class="recorder__status" data-status role="status" aria-live="polite">Apasă și vorbește</p>
     <button type="button" class="btn btn--secondary btn--sm" data-record-cancel hidden>
       {% icon "close" 16 %} Anulează
     </button>
   </div>
 
-  <details data-text-fallback {% if mode == "text" %}open{% endif %}>
+  <details data-text-fallback {% if mode == "text" or transcription_unavailable %}open{% endif %}>
     <summary class="btn btn--ghost btn--block" style="list-style:none">
       {% icon "text" 18 %} Scrie în loc să vorbești
     </summary>

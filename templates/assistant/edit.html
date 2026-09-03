@@ -43,6 +43,14 @@
     {% endif %}
   </div>
 
+  {% if transcription_unavailable %}
+    <p class="message message--warning">
+      {% icon "info" 18 %}
+      <span>Transcrierea vocală nu este disponibilă acum: serviciul nu este configurat pe
+        acest server. Poți scrie modificarea mai jos.</span>
+    </p>
+  {% endif %}
+
   <div class="voice-hint">
     <div class="recorder" style="padding:0;border:none;background:none" data-recorder
          data-upload-url="{% url 'assistant:edit_by_voice' kind object.pk %}">
@@ -61,7 +69,7 @@
     </div>
   </div>
 
-  <details>
+  <details {% if transcription_unavailable %}open{% endif %}>
     <summary class="btn btn--ghost btn--block" style="list-style:none">
       {% icon "text" 18 %} Scrie în loc să vorbești
     </summary>

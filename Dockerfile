@@ -22,4 +22,4 @@ RUN python -c "import compileall, sys; sys.exit(0 if compileall.compile_dir('app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \n     "--workers", "3", "--threads", "4", "--timeout", "120"]

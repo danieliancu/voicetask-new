@@ -7,7 +7,7 @@ import time
 
 from django.conf import settings
 from django.core.cache import cache
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.template.loader import render_to_string
 
 
@@ -43,8 +43,18 @@ def check(scope: str, request) -> None:
         raise RateLimited(retry_after=window_start + window - now)
 
 
+def _wants_json(request) -> bool:
+    """`postForm` din static/js/main.js marcheaza cererile care asteapta JSON."""
+    return request.headers.get("X-Requested-With") == "fetch"
+
+
 def limited(scope: str):
-    """Decorator pentru view-uri. Returneaza un fragment HTML 429, nu o pagina de eroare."""
+    """Decorator pentru view-uri.
+
+    Raspunsul urmeaza formatul cerut de apelant: un fragment HTML pentru HTMX si
+    navigare normala, JSON pentru incarcarile trimise cu `fetch` (voce, camera),
+    ca mesajul de limitare sa ajunga la utilizator, nu unul generic.
+    """
 
     def decorator(view):
         @functools.wraps(view)
@@ -52,12 +62,23 @@ def limited(scope: str):
             try:
                 check(scope, request)
             except RateLimited as exc:
-                html = render_to_string(
-                    "core/_rate_limited.html",
-                    {"retry_after": exc.retry_after},
-                    request=request,
-                )
-                response = HttpResponse(html, status=429)
+                if _wants_json(request):
+                    response = JsonResponse(
+                        {
+                            "eroare": (
+                                "Prea multe cereri. Încearcă din nou în "
+                                f"{exc.retry_after} secunde."
+                            )
+                        },
+                        status=429,
+                    )
+                else:
+                    html = render_to_string(
+                        "core/_rate_limited.html",
+                        {"retry_after": exc.retry_after},
+                        request=request,
+                    )
+                    response = HttpResponse(html, status=429)
                 response["Retry-After"] = str(exc.retry_after)
                 return response
             return view(request, *args, **kwargs)

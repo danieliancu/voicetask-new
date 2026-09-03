@@ -52,6 +52,7 @@ class CaptureView(OwnerQuerysetMixin, TemplateView):
                 "mode": self.request.GET.get("mod", "voce"),
                 "text_form": TextCommandForm(),
                 "transcription_is_demo": transcription.is_mock,
+                "transcription_unavailable": not transcription.is_available(),
                 "max_audio_bytes": settings.MAX_UPLOAD_AUDIO_BYTES,
             }
         )
@@ -286,12 +287,14 @@ class EditByVoiceView(OwnerQuerysetMixin, TemplateView):
 
             raise Http404
         obj = get_object_or_404(model.objects.for_user(self.request.user), pk=self.kwargs["pk"])
+        transcription = get_provider("transcription")
         context.update(
             {
                 "page": "edit",
                 "kind": kind,
                 "object": obj,
                 "examples": EDIT_EXAMPLES.get(kind, EDIT_EXAMPLES["default"]),
+                "transcription_unavailable": not transcription.is_available(),
             }
         )
         return context

@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 from django import forms
+from django.utils import timezone
 
 from apps.assistant.schemas import Intent, IntentResult
+from apps.core.enums import ItemKind
+from apps.core.registry import model_for_kind
 
 INTENT_CHOICES = (
     (Intent.CREATE_NOTE, "Notă"),
@@ -22,6 +25,62 @@ REMINDER_OFFSETS = (
     (1440, "Cu o zi înainte"),
 )
 
+OFFSET_VALUES = {value for value, _ in REMINDER_OFFSETS if value != ""}
+
+
+def _initial_from_target(draft) -> dict:
+    """Valorile curente ale obiectului vizat de o comanda de modificare.
+
+    Returneaza `{}` daca tinta nu poate fi identificata — atunci formularul
+    ramane pe schita, ca inainte.
+    """
+    kind = draft.target_kind or None
+    pk = draft.target_id
+    if not kind or not pk:
+        return {}
+    model = model_for_kind(kind)
+    if model is None:
+        return {}
+    obj = model.objects.filter(pk=pk, owner=draft.owner).first()
+    if obj is None:
+        return {}
+
+    if kind == ItemKind.NOTE:
+        return {"title": obj.title, "description": obj.content}
+
+    if kind == ItemKind.APPOINTMENT:
+        starts = timezone.localtime(obj.starts_at)
+        return {
+            "title": obj.title,
+            "description": obj.description,
+            "location": obj.location,
+            "date": starts.date(),
+            "start_time": starts.time().replace(second=0, microsecond=0),
+            "end_time": (
+                timezone.localtime(obj.ends_at).time().replace(second=0, microsecond=0)
+                if obj.ends_at
+                else None
+            ),
+        }
+
+    if kind == ItemKind.REMINDER:
+        remind = timezone.localtime(obj.remind_at)
+        return {
+            "title": obj.title,
+            "description": obj.description,
+            "date": remind.date(),
+            "start_time": remind.time().replace(second=0, microsecond=0),
+            # Un decalaj personalizat nu are optiune in lista; il lasam gol, ca
+            # `TypedChoiceField` sa nu respinga formularul la trimitere.
+            "reminder_offset": (
+                obj.offset_minutes
+                if obj.appointment_id and obj.offset_minutes in OFFSET_VALUES
+                else None
+            ),
+        }
+
+    return {}
+
 
 class DraftForm(forms.Form):
     """Campurile vin din schita; utilizatorul le poate schimba pe toate."""
@@ -32,7 +91,12 @@ class DraftForm(forms.Form):
         label="Detalii", required=False, widget=forms.Textarea(attrs={"rows": 3})
     )
     date = forms.DateField(
-        label="Dată", required=False, widget=forms.DateInput(attrs={"type": "date"})
+        label="Dată",
+        required=False,
+        # `<input type="date">` citeste `value` doar in format ISO. Fara `format`,
+        # Django randeaza data localizat („05.09.2026") si browserul ignora
+        # valoarea: campul apare gol, desi data a fost interpretata corect.
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
     )
     start_time = forms.TimeField(
         label="Ora de început", required=False, widget=forms.TimeInput(attrs={"type": "time"})
@@ -51,17 +115,31 @@ class DraftForm(forms.Form):
         super().__init__(*args, **kwargs)
         if draft is not None and not self.is_bound:
             result = IntentResult.model_validate(draft.payload)
+            # La modificare pornim de la obiectul existent, nu de la schita.
+            # Comanda spune doar ce se schimba („mută la ora 14"), deci restul
+            # campurilor trebuie sa arate valorile reale; altfel utilizatorul ar
+            # trimite inapoi campuri goale si ar sterge datele pe care nu le-a
+            # atins. Peste ele punem doar ce a rostit efectiv.
+            base = _initial_from_target(draft) if draft.intent == Intent.UPDATE_ITEM else {}
+            spoken = {
+                "title": result.title,
+                "description": result.description,
+                "date": result.date,
+                "start_time": result.start_time,
+                "end_time": result.end_time,
+                "location": result.location,
+                "person": result.person,
+                "reminder_offset": result.reminder_offset,
+            }
+            if not base:
+                # Creare: titlul lipsa se completeaza cu textul rostit, ca
+                # utilizatorul sa aiba de unde porni.
+                spoken["title"] = result.title or draft.source_text[:200]
             self.initial.update(
                 {
                     "intent": result.intent,
-                    "title": result.title or draft.source_text[:200],
-                    "description": result.description or "",
-                    "date": result.date,
-                    "start_time": result.start_time,
-                    "end_time": result.end_time,
-                    "location": result.location or "",
-                    "person": result.person or "",
-                    "reminder_offset": result.reminder_offset,
+                    **base,
+                    **{key: value for key, value in spoken.items() if value is not None},
                 }
             )
         if draft is not None and draft.intent in {Intent.UPDATE_ITEM, Intent.DELETE_ITEM}:

@@ -17,7 +17,7 @@ rapidocr-onnxruntime>=1.3
 dateparser>=1.2
 
 # Provideri externi (optionali la rulare, importati lazy)
-openai>=1.50
+openai>=1.50,<4
 requests>=2.32
 google-auth>=2.35
 google-auth-oauthlib>=1.2

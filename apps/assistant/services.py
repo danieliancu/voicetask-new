@@ -11,10 +11,16 @@ from django.utils import timezone
 from apps.accounts.models import UserPreference
 from apps.assistant import policy, resolver
 from apps.assistant.models import IntentDraft, VoiceCapture
-from apps.assistant.schemas import Intent, IntentResult, IntentValidationError, parse_result
-from apps.core.providers.base import ProviderError
+from apps.assistant.schemas import (
+    MUTATING_INTENTS,
+    Intent,
+    IntentResult,
+    IntentValidationError,
+    parse_result,
+)
+from apps.core.providers.base import ProviderError, ProviderUnavailable
 from apps.core.providers.context import IntentContext
-from apps.core.providers.registry import get_provider
+from apps.core.providers.registry import get_offline_provider, get_provider
 
 logger = logging.getLogger("voicetask.assistant")
 
@@ -47,7 +53,15 @@ def transcribe(capture: VoiceCapture, audio: bytes) -> VoiceCapture:
         logger.warning("transcriere esuata capture=%s tip=%s", capture.uid, type(exc).__name__)
         return capture
 
-    capture.transcript = result.text
+    text = (result.text or "").strip()
+    if not text:
+        capture.status = VoiceCapture.Status.FAILED
+        capture.error = "Nu am auzit nimic. Încearcă din nou, mai aproape de microfon."
+        capture.save(update_fields=["status", "error", "updated_at"])
+        logger.info("transcriere goala capture=%s", capture.uid)
+        return capture
+
+    capture.transcript = text
     capture.transcript_confidence = result.confidence
     capture.duration_ms = result.duration_ms
     capture.status = VoiceCapture.Status.PARSING
@@ -63,6 +77,68 @@ def transcribe(capture: VoiceCapture, audio: bytes) -> VoiceCapture:
     return capture
 
 
+def _unclear_result() -> IntentResult:
+    """Rezultatul folosit cand nicio interpretare nu a reusit."""
+    return IntentResult(
+        intent=Intent.UNKNOWN,
+        confidence=0.0,
+        clarification_required=True,
+        clarification_question="Nu am putut interpreta comanda. Poți reformula?",
+    )
+
+
+def _parse_and_validate(parser, text: str, context: IntentContext) -> IntentResult:
+    return parse_result(parser.parse(text, context=context))
+
+
+def _interpret_text(text: str, context: IntentContext) -> tuple[IntentResult, bool]:
+    """Interpreteaza textul, cu rezerva pe parserul determinist.
+
+    Returneaza `(rezultat, degradat)`. Providerul configurat are prioritate.
+    Daca esueaza — serviciul nu raspunde sau raspunsul nu trece de schema — se
+    reia o singura data cu parserul local, care decide doar comenzile pe care le
+    recunoaste sigur. Daca nici el nu poate decide, cerem reformularea.
+
+    Doua limite deliberate:
+
+    * o eroare de configurare (`ProviderUnavailable`: cheie lipsa sau respinsa)
+      nu declanseaza rezerva. Altfel aplicatia ar parea sanatoasa la nesfarsit,
+      iar greseala de configurare nu s-ar observa niciodata.
+    * rezerva nu decide stergeri sau modificari. „Serviciul a cazut, deci
+      presupun ca voiai sa stergi ceva" nu este un comportament acceptabil.
+
+    Transcrierea nu are o astfel de rezerva: un text inventat ar fi mai rau
+    decat o eroare onesta.
+    """
+    provider = get_provider("intent")
+    try:
+        return _parse_and_validate(provider, text, context), False
+    except ProviderUnavailable as exc:
+        # Configurare gresita: esec deschis, fara rezerva care sa il mascheze.
+        logger.warning(
+            "provider indisponibil provider=%s tip=%s", provider.name, type(exc).__name__
+        )
+        return _unclear_result(), False
+    except ProviderError as exc:
+        logger.warning("interpretare esuata provider=%s tip=%s", provider.name, type(exc).__name__)
+    except IntentValidationError as exc:
+        logger.warning("schema invalida provider=%s campuri=%s", provider.name, exc.fields)
+
+    fallback = get_offline_provider("intent")
+    if type(fallback) is type(provider):
+        return _unclear_result(), False
+
+    logger.warning("se reia interpretarea cu parserul local provider=%s", fallback.name)
+    try:
+        result = _parse_and_validate(fallback, text, context)
+    except (ProviderError, IntentValidationError):
+        return _unclear_result(), True
+
+    if result.intent == Intent.UNKNOWN or result.intent in MUTATING_INTENTS:
+        return _unclear_result(), True
+    return result, True
+
+
 def interpret(
     user,
     text: str,
@@ -74,24 +150,7 @@ def interpret(
 ) -> IntentDraft:
     """Interpreteaza textul si creeaza schita. Nu salveaza nimic in aplicatie."""
     context = build_context(user, mode=mode, target_kind=target_kind, target_id=target_id)
-    provider = get_provider("intent")
-
-    try:
-        raw = provider.parse(text, context=context)
-    except ProviderError as exc:
-        logger.warning("interpretare esuata tip=%s", type(exc).__name__)
-        raw = {"intent": Intent.UNKNOWN, "confidence": 0.0}
-
-    try:
-        result = parse_result(raw)
-    except IntentValidationError as exc:
-        logger.warning("schema invalida campuri=%s", exc.fields)
-        result = IntentResult(
-            intent=Intent.UNKNOWN,
-            confidence=0.0,
-            clarification_required=True,
-            clarification_question="Nu am putut interpreta comanda. Poți reformula?",
-        )
+    result, degraded = _interpret_text(text, context)
 
     candidates: list[resolver.Candidate] = []
     if result.needs_target and result.target_id is None:
@@ -101,7 +160,7 @@ def interpret(
         if found_id is not None:
             result = result.model_copy(update={"target_id": found_id, "target_kind": found_kind})
 
-    decision = policy.decide(result, candidate_count=len(candidates))
+    decision = policy.decide(result, candidate_count=len(candidates), degraded=degraded)
 
     draft = IntentDraft.objects.create(
         owner=user,

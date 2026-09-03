@@ -22,6 +22,7 @@ EXTENSION_FOR = {
     "audio/mp4": "m4a",
     "audio/wav": "wav",
     "audio/mpeg": "mp3",
+    "audio/aac": "aac",
 }
 
 
@@ -66,7 +67,13 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
                 )
             except openai.APITimeoutError as exc:
                 raise ProviderTimeout(str(exc)) from exc
+            except (openai.AuthenticationError, openai.PermissionDeniedError) as exc:
+                raise ProviderUnavailable(str(exc)) from exc
             except openai.APIError as exc:
+                raise ProviderError(str(exc)) from exc
+            except openai.OpenAIError as exc:
+                # `OpenAIError` este radacina: unele erori (lungime, filtru de
+                # continut) nu trec prin `APIError` si ar deveni altfel 500.
                 raise ProviderError(str(exc)) from exc
 
         with timed(self.name, "transcribe"):

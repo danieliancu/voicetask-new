@@ -1,0 +1,31 @@
+| Etapă                     | Ce s-a făcut                                                                                                 | Ce mai trebuie făcut                                                                         | Stare                               |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- | ----------------------------------- |
+| 1. Fundația aplicației    | Django, baza de date, autentificare, configurări dev/producție, structură modulară                           | Nimic important la nivel de fundație                                                         | ✅ Gata                              |
+| 2. Interfața              | Design mobile, navigație, cele 12 ecrane, formulare, HTMX, PWA                                               | Verificare finală pe mai multe telefoane și browsere                                         | ✅ Aproape gata                      |
+| 3. Funcțiile personale    | Notițe, programări, alarme, modificare, căutare, ștergere, restaurare din coș                                | Testare manuală completă a tuturor combinațiilor                                             | ✅ Gata                              |
+| 4. Asistentul vocal       | Înregistrare audio, transcriere, interpretarea comenzilor și confirmare înainte de salvare                   | Activarea și testarea providerului OpenAI real                                               | 🟡 Funcționează în demo             |
+| 5. OCR și fotografii      | Încărcare, validare, detectarea documentului, corectarea perspectivei, OCR, extragerea datelor și confirmare | Activarea OCR real și testarea cu documente românești reale                                  | 🟡 Aproape gata                     |
+| 6. Optimizarea imaginilor | Imaginea este redimensionată și procesată pentru OCR                                                         | Conversie în `.webp`, compresie și stabilirea ștergerii fotografiei originale                | 🔴 De făcut                         |
+| 7. Rezumatul zilnic       | Rezumat determinist din programări, alarme, documente și emailuri simulate                                   | Testarea programării automate; opțional, activarea reformulării prin AI                      | ✅ Funcția există                    |
+| 8. Notificări             | Notificări în aplicație, evitarea duplicatelor și procese automate                                           | Configurare Web Push, chei VAPID, HTTPS și testare pe telefon                                | 🟡 Parțial                          |
+| 9. Gmail                  | Interfață, modele, OAuth și provider demonstrativ                                                            | Implementarea providerului Gmail real și testare cu un cont Google                           | 🔴 Integrarea reală lipsește        |
+| 10. Google Calendar       | Interfață, OAuth, sincronizare simulată și legătura cu programările                                          | Implementarea providerului Google Calendar real și testarea sincronizării în ambele direcții | 🔴 Integrarea reală lipsește        |
+| 11. Procese automate      | Celery, generare rezumate, alarme, curățarea coșului și fișierelor vechi                                     | Testare cu Redis și procese Celery separate                                                  | 🟡 Configurat, nu validat complet   |
+| 12. Producție             | Docker, PostgreSQL, Redis și setări de securitate pregătite                                                  | Server, domeniu, HTTPS, email, backup și monitorizare                                        | 🔴 Nepublicată                      |
+| 13. Testare               | Suită mare de teste; ultimul rezultat raportat: `457 passed, 1 skipped`                                      | GitHub Actions pentru rularea automată a testelor la fiecare push                            | 🟡 Bun local                        |
+| 14. GitHub                | Codul este urcat și `.env` nu este publicat                                                                  | Commituri separate și, eventual, repository privat                                           | 🟡 Funcțional, dar cu istoric minim |
+
+
+
+
+| Ordine | Următoarea lucrare                         | Rezultat                                 |
+| -----: | ------------------------------------------ | ---------------------------------------- |
+|      1 | Conversie automată a fotografiilor în WebP | Fișiere mai mici și costuri reduse       |
+|      2 | Activarea și testarea OCR real             | Documentele reale pot fi citite          |
+|      3 | Implementarea Gmail și Calendar reale      | Integrările Google devin funcționale     |
+|      4 | Activarea notificărilor Web Push           | Alarmele ajung pe telefon                |
+|      5 | Testarea PostgreSQL, Redis și Celery       | Aplicația poate rula stabil în producție |
+|      6 | GitHub Actions                             | Problemele sunt detectate automat        |
+|      7 | Publicarea pe un server de test            | Poate fi încercată din exterior          |
+|      8 | Testare cu utilizatori reali               | Se identifică problemele de utilizare    |
+|      9 | Lansarea publică                           | Aplicație pregătită pentru utilizatori   |

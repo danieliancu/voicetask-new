@@ -128,7 +128,13 @@ TRAILING_NOISE = re.compile(r"[\s,]*\b(?:la|in|pe|de|cu|si|ora|pentru|ca)\b[\s,.
 
 LOCATION_PLACE = re.compile(
     r"\b(?:la|in|pe)\s+((?:clinica|spitalul|scoala|liceul|gradinita|hotelul|restaurantul|"
-    r"aeroportul|cabinetul|sediul|biroul|sala|strada|bulevardul)(?:\s+[\w.-]+){1,4})"
+    r"aeroportul|cabinetul|sediul|biroul|sala|strada|bulevardul)"
+    # Numele locului se opreste la primul cuvant functional: fara oprire,
+    # „la clinica Regina Maria la ora 9" ar da locatia „clinica Regina Maria la ora".
+    r"(?:\s+(?!(?:la|in|pe|de|cu|si|ora|orele|pentru|maine|azi|poimaine|dimineata|"
+    r"seara|amiaza|noaptea|numarul|nr)\b)[\w.-]+){1,4}"
+    # Numarul face parte din adresa, nu din titlu: „strada Covaci, numarul 4".
+    r"(?:,?\s+(?:numarul|nr\.?)\s*\d+[a-z]?)?)"
 )
 LOCATION_ONLINE = re.compile(r"\b(google meet|zoom|teams|skype)\b")
 

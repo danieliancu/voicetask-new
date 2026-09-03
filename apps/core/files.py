@@ -26,7 +26,14 @@ AUDIO_SIGNATURES: tuple[tuple[bytes, str, str], ...] = (
     (b"\x1aE\xdf\xa3", "audio/webm", "webm"),
     (b"OggS", "audio/ogg", "ogg"),
     (b"ID3", "audio/mpeg", "mp3"),
+    # Antetul de cadru MPEG audio difera dupa versiune si dupa bitul de
+    # protectie: fb/fa sunt MPEG-1 Layer III, f3/f2 sunt MPEG-2, iar e3
+    # este MPEG-2.5. Toate sunt fisiere mp3 valide.
     (b"\xff\xfb", "audio/mpeg", "mp3"),
+    (b"\xff\xfa", "audio/mpeg", "mp3"),
+    (b"\xff\xf3", "audio/mpeg", "mp3"),
+    (b"\xff\xf2", "audio/mpeg", "mp3"),
+    (b"\xff\xe3", "audio/mpeg", "mp3"),
     (b"\xff\xf1", "audio/aac", "aac"),
 )
 

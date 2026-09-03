@@ -31,6 +31,7 @@ class Recorder {
     this.timer = root.querySelector("[data-timer]");
     this.status = root.querySelector("[data-status]");
     this.level = root.querySelector("[data-level]");
+    this.levelTrack = root.querySelector("[data-level-track]");
     this.chunks = [];
     this.cancelled = false;
 
@@ -38,8 +39,13 @@ class Recorder {
     this.cancelButton?.addEventListener("click", () => this.cancel());
   }
 
-  setStatus(text) {
-    if (this.status) this.status.textContent = text;
+  /* `progress` inlocuieste textul cu bara verde: durata nu se poate estima, asa
+   * ca bara este indeterminata. Textul pleaca oricum spre cititoarele de ecran,
+   * care nu au ce face cu o animatie. */
+  setStatus(text, { progress = false } = {}) {
+    if (this.status) this.status.textContent = progress ? "" : text;
+    this.levelTrack?.toggleAttribute("data-progress", progress);
+    if (progress && this.level) this.level.style.width = "";
     announce(text);
   }
 
@@ -147,7 +153,7 @@ class Recorder {
       return;
     }
 
-    this.setStatus("Se trimite și se interpretează…");
+    this.setStatus("Se trimite și se interpretează…", { progress: true });
     const form = new FormData();
     form.append("audio", blob, "comanda.webm");
 

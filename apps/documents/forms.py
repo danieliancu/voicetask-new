@@ -37,7 +37,11 @@ class ExtractionConfirmForm(forms.Form):
         label="Tip document", choices=ScannedDocument.DocumentType.choices
     )
     due_date = forms.DateField(
-        label="Dată limită", required=False, widget=forms.DateInput(attrs={"type": "date"})
+        label="Dată limită",
+        required=False,
+        # Vezi nota din `apps/assistant/forms.py`: fara `format`, `<input
+        # type="date">` primeste o valoare localizata pe care nu o poate citi.
+        widget=forms.DateInput(attrs={"type": "date"}, format="%Y-%m-%d"),
     )
     event_time = forms.TimeField(
         label="Oră", required=False, widget=forms.TimeInput(attrs={"type": "time"})

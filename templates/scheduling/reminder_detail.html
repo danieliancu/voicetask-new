@@ -23,7 +23,8 @@
   <div class="detail-list">
     <div class="detail-row">
       <span class="detail-row__icon">{% icon "bell" 20 %}</span>
-      <span><span class="detail-row__label">Sună la</span>
+    {# Iconul e aria-hidden, deci eticheta ramane pentru cititoarele de ecran. #}
+      <span><span class="visually-hidden">Sună la</span>
         <span class="detail-row__value">{{ reminder.remind_at|data_zi_ro }}, {{ reminder.remind_at|ora_ro }}</span></span>
       <span></span>
     </div>

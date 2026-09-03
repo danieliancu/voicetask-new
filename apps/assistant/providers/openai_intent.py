@@ -29,6 +29,16 @@ Reguli obligatorii:
 - Nu inventa date, ore, sume, persoane sau locații care nu apar în text.
 - Dacă utilizatorul nu spune o dată, lasă `date` null. Nu ghici.
 - `intent` este exact una dintre valorile permise.
+- `title` este o etichetă scurtă, nu propoziția rostită. Maximum 6 cuvinte, fără
+  verbul de comandă și fără nimic care are deja câmpul lui: dată, oră, locație,
+  persoană, sumă. Repetate în titlu, ar apărea de două ori în interfață.
+  Scrie-l ca substantiv, cu majusculă la început, fără punct final.
+  Exemplu: „Programare mâine la dentist, la ora 12, pe strada Covaci, numărul 4."
+  → title: „Programare la dentist", date: data de mâine, start_time: „12:00",
+  location: „Strada Covaci 4".
+- Rezumarea în titlu nu este invenție: nu adăuga cuvinte care schimbă sensul și
+  nu strecura detalii care nu au fost rostite.
+- Ce a fost rostit dar nu încape în niciun câmp dedicat pune în `description`.
 - `confidence` reflectă cât de sigur ești (0.0-1.0). Fii sever.
 - Dacă textul e ambiguu (dată neclară, persoană neidentificabilă, mai multe
   interpretări posibile), setează `clarification_required` true și formulează
@@ -102,7 +112,13 @@ class OpenAIIntentParser(IntentParserProvider):
                 )
             except openai.APITimeoutError as exc:
                 raise ProviderTimeout(str(exc)) from exc
+            except (openai.AuthenticationError, openai.PermissionDeniedError) as exc:
+                raise ProviderUnavailable(str(exc)) from exc
             except openai.APIError as exc:
+                raise ProviderError(str(exc)) from exc
+            except openai.OpenAIError as exc:
+                # `OpenAIError` este radacina: unele erori (lungime, filtru de
+                # continut) nu trec prin `APIError` si ar deveni altfel 500.
                 raise ProviderError(str(exc)) from exc
 
         with timed(self.name, "parse"):
@@ -117,5 +133,6 @@ class OpenAIIntentParser(IntentParserProvider):
             raise ProviderInvalidResponse("Modelul nu a returnat JSON valid.") from exc
         if not isinstance(payload, dict):
             raise ProviderInvalidResponse("Modelul nu a returnat un obiect JSON.")
-        payload.setdefault("intent", Intent.UNKNOWN)
+        # `setdefault` nu ar inlocui un `intent: null` explicit.
+        payload["intent"] = payload.get("intent") or Intent.UNKNOWN
         return payload

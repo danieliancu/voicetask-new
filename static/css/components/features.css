@@ -328,6 +328,32 @@
   transition: width 80ms linear;
 }
 
+/* Trimiterea si interpretarea: durata nu se poate estima, deci bara este
+   indeterminata — un segment verde care traverseaza pista. */
+.recorder__level[data-progress] .recorder__level-bar {
+  width: 40%;
+  background: var(--color-success);
+  transition: none;
+  animation: recorder-progres 1.2s ease-in-out infinite;
+}
+
+@keyframes recorder-progres {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* Fara traversare: pista ramane verde, plina, cat dureaza procesarea. */
+  .recorder__level[data-progress] .recorder__level-bar {
+    width: 100%;
+    animation: none;
+  }
+}
+
 .recorder__status {
   min-height: 1.5em;
   text-align: center;

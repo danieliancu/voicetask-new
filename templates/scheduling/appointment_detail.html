@@ -23,14 +23,15 @@
   <div class="detail-list">
     <div class="detail-row">
       <span class="detail-row__icon">{% icon "calendar" 20 %}</span>
-      <span><span class="detail-row__label">Când</span>
+    {# Iconul e aria-hidden, deci eticheta ramane pentru cititoarele de ecran. #}
+      <span><span class="visually-hidden">Când</span>
         <span class="detail-row__value">{{ appointment.starts_at|data_zi_ro }}, {{ appointment.starts_at|ora_ro }}{% if appointment.ends_at %} – {{ appointment.ends_at|ora_ro }}{% endif %}</span></span>
       <span></span>
     </div>
     {% if appointment.location %}
       <div class="detail-row">
         <span class="detail-row__icon">{% icon "map-pin" 20 %}</span>
-        <span><span class="detail-row__label">Locație</span>
+        <span><span class="visually-hidden">Locație</span>
           <span class="detail-row__value">{{ appointment.location }}</span></span>
         <span></span>
       </div>
@@ -38,7 +39,9 @@
     {% for reminder in appointment.reminders.all %}
       <div class="detail-row">
         <span class="detail-row__icon">{% icon "bell" 20 %}</span>
-        <span><span class="detail-row__label">Alarmă · {{ reminder.get_status_display }}</span>
+        {# Starea ramane vizibila: e informatie, nu eticheta. #}
+        <span><span class="visually-hidden">Alarmă</span>
+          <span class="detail-row__label">{{ reminder.get_status_display }}</span>
           <span class="detail-row__value">{{ reminder.offset_minutes|decalaj_alarma }} ({{ reminder.remind_at|ora_ro }})</span></span>
         <span></span>
       </div>

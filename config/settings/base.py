@@ -178,6 +178,12 @@ PROVIDERS_OFFLINE = {
 AI_ENABLED = env_bool("AI_ENABLED", False)
 OPENAI_API_KEY = env("OPENAI_API_KEY", "")
 OPENAI_BASE_URL = env("OPENAI_BASE_URL", "") or None
+if OPENAI_BASE_URL is None:
+    # SDK-ul OpenAI citeste singur `OPENAI_BASE_URL` din mediu daca nu primeste
+    # `base_url`. Lasata goala in `.env` — exact cum apare in `.env.example` —
+    # ar ajunge un sir vid, adica un URL fara schema, si orice apel ar esua cu
+    # „Connection error". O stergem, ca SDK-ul sa foloseasca adresa lui implicita.
+    os.environ.pop("OPENAI_BASE_URL", None)
 OPENAI_MODEL_INTENT = env("OPENAI_MODEL_INTENT", "gpt-4o-mini")
 OPENAI_MODEL_TRANSCRIBE = env("OPENAI_MODEL_TRANSCRIBE", "whisper-1")
 OPENAI_MODEL_TTS = env("OPENAI_MODEL_TTS", "gpt-4o-mini-tts")
@@ -228,7 +234,7 @@ OCR_FIELD_CONFIDENCE_WARN = env_float("OCR_FIELD_CONFIDENCE_WARN", 0.65)
 BRIEF_POLISH_ENABLED = env_bool("BRIEF_POLISH_ENABLED", False)
 BRIEF_AUDIO_ENABLED = env_bool("BRIEF_AUDIO_ENABLED", True)
 
-SW_CACHE_VERSION = env("SW_CACHE_VERSION", "2")
+SW_CACHE_VERSION = env("SW_CACHE_VERSION", "3")
 
 # --------------------------------------------------------------------------- celery
 

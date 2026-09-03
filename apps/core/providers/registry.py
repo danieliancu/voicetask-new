@@ -54,6 +54,18 @@ def resolve_path(kind: str) -> str:
     return dotted
 
 
+def get_offline_provider(kind: str):
+    """Providerul local pentru acest tip, indiferent de configuratie.
+
+    Folosit ca rezerva atunci cand serviciul extern esueaza. Ramane configurabil
+    prin `PROVIDERS_OFFLINE`, deci nu se cablează o clasa anume in cod.
+    """
+    dotted = settings.PROVIDERS_OFFLINE.get(kind)
+    if dotted is None:
+        raise ImproperlyConfigured(f"Nu există un provider offline pentru '{kind}'.")
+    return _instantiate(dotted)
+
+
 def get_provider(kind: str):
     if kind in _overrides:
         return _overrides[kind]

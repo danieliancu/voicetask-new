@@ -38,7 +38,20 @@ class Decision:
     requires_explicit_confirmation: bool = False
 
 
-def decide(result: IntentResult, *, candidate_count: int = 0) -> Decision:
+def decide(
+    result: IntentResult, *, candidate_count: int = 0, degraded: bool = False
+) -> Decision:
+    """Decide daca schita poate fi confirmata sau trebuie lamurita.
+
+    `degraded=True` marcheaza un rezultat produs de rezerva locala, dupa ce
+    serviciul extern a esuat. Increderea raportata de parserul pe reguli este
+    a lui, nu a interpretarii cerute, asa ca pragul de lamurire creste: preferam
+    o intrebare in plus in locul unei schite gresite.
+    """
+    threshold = (
+        settings.INTENT_CONFIDENCE_AUTOFILL if degraded else settings.INTENT_CONFIDENCE_CLARIFY
+    )
+
     if result.intent == Intent.UNKNOWN:
         return Decision(
             can_confirm=False,
@@ -47,7 +60,7 @@ def decide(result: IntentResult, *, candidate_count: int = 0) -> Decision:
             reason="intentie_necunoscuta",
         )
 
-    if result.confidence < settings.INTENT_CONFIDENCE_CLARIFY:
+    if result.confidence < threshold:
         return Decision(
             can_confirm=False,
             needs_clarification=True,

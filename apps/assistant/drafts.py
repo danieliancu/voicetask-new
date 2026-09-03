@@ -174,9 +174,13 @@ def _update_item(draft: IntentDraft, result: IntentResult) -> tuple[str, int]:
     if kind == ItemKind.APPOINTMENT and result.date:
         current_time = timezone.localtime(obj.starts_at).time()
         starts_at = _aware(result.date, result.start_time or current_time)
+        # Durata se citeste inainte de mutarea inceputului, altfel ar iesi gresita.
         duration = obj.duration or timedelta(hours=1)
         obj.starts_at = starts_at
-        obj.ends_at = starts_at + duration
+        # O ora de final rostita sau editata are prioritate; altfel pastram durata.
+        obj.ends_at = (
+            _aware(result.date, result.end_time) if result.end_time else starts_at + duration
+        )
         changed += ["starts_at", "ends_at"]
     elif kind == ItemKind.REMINDER and (result.date or result.start_time):
         current = timezone.localtime(obj.remind_at)

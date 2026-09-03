@@ -26,6 +26,9 @@ _ORPHAN_PREPOSITION = re.compile(
     r"\b(?:la|[iî]n|pe|de|cu|pentru|[sș]i|ora|din)\s+(?=[,:;.]|$)", re.IGNORECASE
 )
 _SPACE_BEFORE_PUNCT = re.compile(r"\s+([,:;.])")
+#: Taieturile alaturate lasa in urma siruri de separatori („dentist,,, numarul").
+#: Le reducem la unul singur, urmat de un spatiu daca mai vine text.
+_PUNCT_RUN = re.compile(r"[ ,;:]*([,;:])[ ,;:]*")
 
 
 def strip_diacritics(text: str) -> str:
@@ -75,6 +78,7 @@ def cut_spans(text: str, spans: list[tuple[int, int]]) -> str:
     # Prepozitiile ramase orfane dupa taietura („pentru :") nu au ce cauta in titlu.
     result = _ORPHAN_PREPOSITION.sub("", result)
     result = _SPACE_BEFORE_PUNCT.sub(r"\1", result)
+    result = _PUNCT_RUN.sub(r"\1 ", result)
     return result.strip(" ,.;:-")
 
 
