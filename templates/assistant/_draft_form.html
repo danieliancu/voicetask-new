@@ -1,4 +1,4 @@
-{% load icons %}
+{% load icons ro %}
 {# Schita editabila. Nimic nu se salveaza pana cand nu apesi „Salvează". #}
 <section class="draft" id="schita-{{ draft.uid }}" aria-labelledby="titlu-schita">
   <div class="draft__head">
@@ -6,7 +6,7 @@
     <h2 id="titlu-schita" style="font-size:var(--fs-lg)">{{ result.label }}</h2>
     <span class="spacer"></span>
     <span class="badge {% if draft.confidence < 0.55 %}badge--warning{% else %}badge--accent{% endif %}">
-      Încredere {{ draft.confidence|floatformat:0 }}0%
+      Încredere {{ draft.confidence|procent }}
     </span>
   </div>
 

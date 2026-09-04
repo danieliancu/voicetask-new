@@ -9,12 +9,20 @@ from __future__ import annotations
 from types import SimpleNamespace
 from unittest.mock import patch
 
-import httpx2
 import openai
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.urls import reverse
 from django.utils import timezone
+
+# `openai` isi schimba clientul HTTP intre versiuni majore: 1.x/2.x depind de
+# `httpx`, 3.x de `httpx2`. Testul construieste erori reale ale SDK-ului, deci are
+# nevoie de exact acelasi pachet ca versiunea instalata. `requirements.txt` permite
+# ambele (`openai>=1.50,<4`), asa ca alegerea se face la rulare, nu la scriere.
+try:
+    import httpx2 as httpx
+except ImportError:  # pragma: no cover - depinde de versiunea instalata
+    import httpx
 
 from apps.assistant import services
 from apps.assistant.models import IntentDraft, VoiceCapture
@@ -67,8 +75,8 @@ def _ridica(exceptie):
 
 def _eroare_de_stare(cls: type, status: int) -> Exception:
     """Erorile de stare din SDK au nevoie de un raspuns HTTP real."""
-    cerere = httpx2.Request("POST", "https://api.openai.com/v1/chat/completions")
-    return cls("eroare simulata", response=httpx2.Response(status, request=cerere), body=None)
+    cerere = httpx.Request("POST", "https://api.openai.com/v1/chat/completions")
+    return cls("eroare simulata", response=httpx.Response(status, request=cerere), body=None)
 
 
 def _mesaj(continut: str):
@@ -204,7 +212,7 @@ def test_timeout_devine_provider_timeout_si_se_reincearca(cu_openai):
 
     def _apel(*_args, **_kwargs):
         apeluri["n"] += 1
-        raise openai.APITimeoutError(request=httpx2.Request("POST", "https://api.openai.com/v1"))
+        raise openai.APITimeoutError(request=httpx.Request("POST", "https://api.openai.com/v1"))
 
     with (
         patch.object(provider, "_client", return_value=_client_fals("transcriere", _apel)),

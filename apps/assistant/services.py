@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.accounts.models import UserPreference
-from apps.assistant import policy, resolver
+from apps.assistant import policy, reconcile, resolver
 from apps.assistant.models import IntentDraft, VoiceCapture
 from apps.assistant.schemas import (
     MUTATING_INTENTS,
@@ -28,7 +28,9 @@ logger = logging.getLogger("voicetask.assistant")
 def build_context(user, *, mode: str = "create", target_kind=None, target_id=None) -> IntentContext:
     prefs = UserPreference.for_user(user)
     return IntentContext(
-        now=timezone.localtime(),
+        # Fusul utilizatorului, nu cel activ pe server. „Mâine", rostit la 23:50 la
+        # Londra, este alta zi decat „mâine" citit cu ceasul de la Bucuresti.
+        now=timezone.localtime(timezone.now(), prefs.tzinfo),
         timezone_name=prefs.timezone,
         known_items=resolver.known_items(user),
         default_reminder_offset=prefs.default_reminder_offset,
@@ -151,6 +153,9 @@ def interpret(
     """Interpreteaza textul si creeaza schita. Nu salveaza nimic in aplicatie."""
     context = build_context(user, mode=mode, target_kind=target_kind, target_id=target_id)
     result, degraded = _interpret_text(text, context)
+    # Nimic din ce a spus modelul nu ajunge in schita neverificat: data si ora sunt
+    # recitite determinist din transcriere, iar detaliile fara acoperire in text cad.
+    result = reconcile.reconcile(result, text, context)
 
     candidates: list[resolver.Candidate] = []
     if result.needs_target and result.target_id is None:
@@ -198,6 +203,57 @@ def process_capture(capture: VoiceCapture, audio: bytes) -> IntentDraft | None:
         capture=capture,
         mode=capture.mode,
     )
+
+
+def update_draft(
+    draft: IntentDraft, result: IntentResult, *, answer: str | None = None
+) -> IntentDraft:
+    """Rescrie schita existenta dupa o completare, pastrandu-i identitatea.
+
+    Aceeasi schita, acelasi `uid`, aceeasi adresa. Politica este recalculata pe
+    starea noua, deci o schita completata iese singura din clarificare, iar una
+    care mai are o lipsa primeste urmatoarea intrebare.
+    """
+    decision = policy.decide(result)
+    draft.intent = result.intent
+    draft.payload = result.model_dump(mode="json")
+    draft.confidence = result.confidence
+    draft.status = (
+        IntentDraft.Status.NEEDS_CLARIFICATION
+        if decision.needs_clarification
+        else IntentDraft.Status.DRAFT
+    )
+    draft.clarification_question = decision.question
+    draft.target_kind = result.target_kind or ""
+    draft.target_id = result.target_id
+    if answer:
+        # Ecranul de confirmare arata `source_text` ca transcriere. Raspunsul se
+        # adauga la ea, ca utilizatorul sa vada tot ce a spus, nu doar prima fraza.
+        draft.source_text = f"{draft.source_text} {answer}".strip()
+    draft.save(
+        update_fields=[
+            "intent",
+            "payload",
+            "confidence",
+            "status",
+            "clarification_question",
+            "target_kind",
+            "target_id",
+            "source_text",
+            "updated_at",
+        ]
+    )
+    return draft
+
+
+def pending_reason(draft: IntentDraft) -> str:
+    """Motivul intrebarii afisate acum.
+
+    `policy.decide` este o functie pura de rezultat, deci motivul se recalculeaza
+    din payload ori de cate ori e nevoie. Asa nu trebuie tinut nicaieri si nu poate
+    ramane in urma fata de schita.
+    """
+    return policy.decide(result_from_draft(draft), candidate_count=len(draft.candidates)).reason
 
 
 def result_from_draft(draft: IntentDraft) -> IntentResult:

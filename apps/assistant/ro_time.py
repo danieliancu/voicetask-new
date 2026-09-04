@@ -64,6 +64,15 @@ NUMBER_WORDS = {
     "douasprezece": 12,
 }
 
+#: Numeralele acceptate ca ora rostita: „la trei", „la două".
+#:
+#: `o`, `un`, `una` si `doi` sunt excluse intentionat. „La o întâlnire" si „la un
+#: control" sunt cele mai obisnuite continuari ale prepozitiei; citite ca ora, ar
+#: inventa 01:00 dintr-o fraza care nu contine nicio ora.
+HOUR_WORDS = {
+    word: value for word, value in NUMBER_WORDS.items() if word not in {"o", "un", "una", "doi"}
+}
+
 #: Parti de zi -> ora implicita.
 DAY_PARTS = {
     "dimineata": time(9, 0),
@@ -85,8 +94,23 @@ RELATIVE_DAYS = {
     "ieri": -1,
 }
 
+_HOUR_WORDS_ALT = "|".join(sorted(HOUR_WORDS, key=len, reverse=True))
+
+#: Dupa un numeral rostit ca ora trebuie sa urmeze sfarsitul frazei, un semn de
+#: punctuatie sau un cuvant care nu poate fi substantivul pe care il determina.
+#: Fara aceasta conditie, „la noua adresă" ar deveni ora 09:00.
+_HOUR_WORD_TAIL = (
+    r"(?=\s*$|[,.;!?]|\s+(?:cu|si|fix|la|in|pe|dupa|dimineata|dimineaza|"
+    r"amiaza|seara|noaptea|pm|am)\b)"
+)
+
 _TIME_HHMM = re.compile(r"\b(?:la\s+|ora\s+)?([01]?\d|2[0-3])[:.,]([0-5]\d)\b")
-_TIME_HOUR = re.compile(r"\b(?:la|ora)\s+([01]?\d|2[0-3])\b(?![:.,]?\d)")
+_TIME_HOUR = re.compile(
+    r"\b(?:la|ora|orele)\s+(?:"
+    r"(" + _HOUR_WORDS_ALT + r")\b" + _HOUR_WORD_TAIL + r"|"
+    r"([01]?\d|2[0-3])\b(?![:.,]?\d)"
+    r")"
+)
 _TIME_HALF = re.compile(r"\b(?:la|ora)\s+([a-z]+|\d{1,2})\s+si\s+jumatate\b")
 _TIME_QUARTER = re.compile(r"\b(?:la|ora)\s+([a-z]+|\d{1,2})\s+si\s+un\s+sfert\b")
 _DATE_NUMERIC = re.compile(r"\b(\d{1,2})[./-](\d{1,2})(?:[./-](\d{2,4}))?\b")
@@ -129,10 +153,15 @@ def _next_weekday(reference: date, weekday: int, *, force_next_week: bool) -> da
 
 
 def _find_day_part(folded: str) -> tuple[time, tuple[int, int]] | None:
-    for word, value in DAY_PARTS.items():
+    """Cauta partile de zi, cele mai lungi intai.
+
+    Ordinea conteaza: „amiaza" este continut in „dupa-amiaza". Cautat primul, ar
+    da 12:00 acolo unde s-a spus 15:00, si ar taia din text doar jumatatea a doua.
+    """
+    for word in sorted(DAY_PARTS, key=len, reverse=True):
         index = folded.find(word)
         if index != -1:
-            return value, (index, index + len(word))
+            return DAY_PARTS[word], (index, index + len(word))
     return None
 
 
@@ -222,15 +251,15 @@ def extract(text: str, *, now: datetime) -> TemporalMatch:
                 break
         else:
             match = _TIME_HOUR.search(folded)
-            if match:
-                hour = int(match.group(1))
+            hour = word_to_number(match.group(1) or match.group(2)) if match else None
+            if match and hour is not None:
                 # „la 3" fara alt indiciu poate insemna 03:00 sau 15:00.
                 if part and part[0] >= time(12, 0) and hour < 12:
                     hour += 12
                 elif hour < 7:
                     ambiguous, reason = True, "ora_ambigua"
                     hour += 12
-                at_time = time(hour, 0)
+                at_time = time(hour % 24, 0)
                 spans.append(match.span())
 
     # 7. Parti de zi, daca nu avem ora exacta.
@@ -267,3 +296,79 @@ def extract(text: str, *, now: datetime) -> TemporalMatch:
 def strip_temporal(text: str, match: TemporalMatch) -> str:
     """Scoate fragmentele temporale din text, ca titlul sa nu contina „mâine la 10"."""
     return cut_spans(text, list(match.spans))
+
+
+#: Cuvintele care semnaleaza o referinta la ZI, chiar daca `extract` nu reuseste
+#: sa o transforme intr-o data. „mai" lipseste deliberat: ca luna apare doar dupa
+#: un numar (deci este prinsa de `_DATE_MONTH`), iar ca adverb este mult mai frecvent.
+_DATE_MARKER_WORDS = sorted(
+    {
+        *RELATIVE_DAYS,
+        *WEEKDAYS,
+        *(name for name in MONTHS if name != "mai"),
+        "saptamana",
+        "saptamani",
+        "luna",
+        "lunile",
+        "anul",
+        "weekend",
+        "zi",
+        "zile",
+        "data",
+    },
+    key=len,
+    reverse=True,
+)
+_DATE_MARKER = re.compile(r"\b(?:" + "|".join(_DATE_MARKER_WORDS) + r")\b")
+
+#: Cuvintele care semnaleaza o referinta la ORA.
+_TIME_MARKER_WORDS = sorted(
+    {*DAY_PARTS, "ora", "orele", "diseara", "deseara", "amiaza", "pranz"},
+    key=len,
+    reverse=True,
+)
+_TIME_MARKER = re.compile(r"\b(?:" + "|".join(_TIME_MARKER_WORDS) + r")\b")
+
+#: „peste doua ore" este si o ora, si o zi; „peste doua zile" este doar o zi.
+_IN_N_HOURS = re.compile(r"\bpeste\s+(?:[a-z]+|\d+)\s+(?:minute?|ore?)\b")
+
+
+def day_part(text: str) -> time | None:
+    """Ora implicita a partii de zi rostite: „dimineața" → 09:00, „seara" → 19:00."""
+    found = _find_day_part(fold(text))
+    return found[0] if found else None
+
+
+def has_explicit_hour(text: str) -> bool:
+    """Textul contine o ora spusa ca atare, nu doar o parte de zi?"""
+    folded = fold(text)
+    return any(
+        pattern.search(folded)
+        for pattern in (_TIME_HHMM, _TIME_HALF, _TIME_QUARTER, _TIME_HOUR, _IN_N_HOURS)
+    )
+
+
+def has_date_marker(text: str) -> bool:
+    """Textul contine vreo referinta la o zi, chiar daca nu poate fi interpretata?
+
+    Face diferenta intre „nu s-a spus nimic despre zi" — caz in care o data venita
+    de la model este inventata — si „s-a spus ceva ce nu stim sa citim", caz in
+    care valoarea modelului merita pastrata, dar confirmata.
+    """
+    folded = fold(text)
+    return bool(_DATE_MARKER.search(folded)) or any(
+        pattern.search(folded) for pattern in (_DATE_NUMERIC, _DATE_MONTH, _IN_N_UNITS)
+    )
+
+
+def has_time_marker(text: str) -> bool:
+    """Acelasi rationament, pentru ora."""
+    folded = fold(text)
+    return bool(_TIME_MARKER.search(folded)) or any(
+        pattern.search(folded)
+        for pattern in (_TIME_HHMM, _TIME_HALF, _TIME_QUARTER, _TIME_HOUR, _IN_N_HOURS)
+    )
+
+
+def has_temporal_marker(text: str) -> bool:
+    return has_date_marker(text) or has_time_marker(text)

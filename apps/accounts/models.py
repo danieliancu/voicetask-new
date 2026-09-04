@@ -47,7 +47,9 @@ class UserPreference(TimeStampedModel):
     def tzinfo(self) -> zoneinfo.ZoneInfo:
         try:
             return zoneinfo.ZoneInfo(self.timezone)
-        except zoneinfo.ZoneInfoNotFoundError:
+        except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+            # `ValueError` acopera valorile goale sau malformate: preferinta este
+            # citita la fiecare comanda vocala si nu are voie sa arunce acolo.
             return zoneinfo.ZoneInfo("Europe/Bucharest")
 
     @property

@@ -62,6 +62,12 @@ INTENT_PATTERNS: tuple[tuple[Intent, tuple[str, ...]], ...] = (
             r"\bprogramar[ei]\b",
             r"\bprogrameaza\b",
             r"\bintalnire\b",
+            # Formele fara verb de comanda: „Mă întâlnesc mâine cu Ion" este o
+            # programare la fel de mult ca „Programează o întâlnire cu Ion".
+            r"\bma intalnesc\b",
+            r"\bne intalnim\b",
+            r"\bma vad\b",
+            r"\bne vedem\b",
             r"\bsedinta\b",
             r"\beveniment\b",
             r"\bconsultatie\b",
@@ -159,6 +165,30 @@ OFFSET_PATTERNS = (
 )
 
 
+#: Increderea unei potriviri pe verb explicit. Stratul de reconciliere o foloseste
+#: ca prag: numai o intentie ancorata intr-un verb rostit poate corecta modelul.
+VERB_SCORE = 0.9
+
+
+def detect_intent(folded: str, context: IntentContext) -> tuple[Intent, float]:
+    """Intentia dedusa determinist din verbele rostite.
+
+    Scoasa din clasa ca `reconcile` sa poata confrunta raspunsul modelului cu
+    aceeasi detectie, fara sa instantieze un parser intreg.
+    """
+    for intent, patterns in INTENT_PATTERNS:
+        for pattern in patterns:
+            if re.search(pattern, folded):
+                return intent, VERB_SCORE
+    # In modul de editare, o comanda fara verb explicit inseamna modificare.
+    if context.mode == "edit":
+        return Intent.UPDATE_ITEM, 0.6
+    # Fara verb, dar cu o data clara: cel mai probabil o programare.
+    if ro_time.extract(folded, now=context.now).day is not None:
+        return Intent.CREATE_APPOINTMENT, 0.45
+    return Intent.CREATE_NOTE, 0.4
+
+
 class RuleBasedIntentParser(IntentParserProvider):
     """Interpretare deterministica: acelasi text da mereu acelasi rezultat."""
 
@@ -172,7 +202,7 @@ class RuleBasedIntentParser(IntentParserProvider):
             return {"intent": Intent.UNKNOWN, "confidence": 0.0}
 
         folded = fold(raw)
-        intent, verb_score = self._detect_intent(folded, context)
+        intent, verb_score = detect_intent(folded, context)
         temporal = ro_time.extract(raw, now=context.now)
         ambiguity: list[str] = []
 
@@ -229,19 +259,6 @@ class RuleBasedIntentParser(IntentParserProvider):
         return payload
 
     # ------------------------------------------------------------------ intern
-
-    def _detect_intent(self, folded: str, context: IntentContext) -> tuple[Intent, float]:
-        for intent, patterns in INTENT_PATTERNS:
-            for pattern in patterns:
-                if re.search(pattern, folded):
-                    return intent, 0.9
-        # In modul de editare, o comanda fara verb explicit inseamna modificare.
-        if context.mode == "edit":
-            return Intent.UPDATE_ITEM, 0.6
-        # Fara verb, dar cu o data clara: cel mai probabil o programare.
-        if ro_time.extract(folded, now=context.now).day is not None:
-            return Intent.CREATE_APPOINTMENT, 0.45
-        return Intent.CREATE_NOTE, 0.4
 
     def _body(self, raw: str, temporal, location_span, offset_span) -> str:
         """Textul ramas dupa scoaterea datei, orei, locatiei si decalajului extrase."""

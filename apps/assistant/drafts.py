@@ -11,23 +11,32 @@ from datetime import datetime, time, timedelta
 from django.db import transaction
 from django.utils import timezone
 
+from apps.accounts.models import UserPreference
 from apps.assistant.models import IntentDraft
 from apps.assistant.schemas import Intent, IntentResult
 from apps.core.enums import ItemKind, Source
 from apps.core.models import AuditLog
 from apps.core.registry import model_for_kind
 
-DEFAULT_TIME = time(9, 0)
+#: Ora la care se aseaza urmarirea unui email cand nu s-a cerut alta. Programarile
+#: si alarmele nu au un asemenea implicit: acolo ora lipsa se cere, nu se presupune.
+FOLLOW_UP_TIME = time(9, 0)
+
+#: Inceputul unei zile intregi, pentru programarile marcate „toată ziua".
+DAY_START = time(0, 0)
 
 
 class DraftError(Exception):
     """Schita nu poate fi aplicata in starea curenta."""
 
 
-def _aware(day, at: time | None):
-    return timezone.make_aware(
-        datetime.combine(day, at or DEFAULT_TIME), timezone.get_current_timezone()
-    )
+def _aware(day, at: time, tz):
+    """Momentul absolut, citit in fusul utilizatorului, nu in cel activ pe server."""
+    return timezone.make_aware(datetime.combine(day, at), tz)
+
+
+def _user_tz(draft: IntentDraft):
+    return UserPreference.for_user(draft.owner).tzinfo
 
 
 @transaction.atomic
@@ -85,12 +94,19 @@ def _create_appointment(draft: IntentDraft, result: IntentResult) -> tuple[str, 
 
     if result.date is None:
         raise DraftError("Programarea are nevoie de o dată.")
-    starts_at = _aware(result.date, result.start_time)
-    ends_at = (
-        _aware(result.date, result.end_time)
-        if result.end_time
-        else starts_at + timedelta(hours=1)
-    )
+    if result.start_time is None and not result.all_day:
+        # Ultima bariera. Fara ea, o programare fara ora rostita s-ar salva la o ora
+        # pe care nu a cerut-o nimeni.
+        raise DraftError("Programarea are nevoie de o oră.")
+
+    tz = _user_tz(draft)
+    starts_at = _aware(result.date, result.start_time or DAY_START, tz)
+    if result.all_day:
+        ends_at = None
+    elif result.end_time:
+        ends_at = _aware(result.date, result.end_time, tz)
+    else:
+        ends_at = starts_at + timedelta(hours=1)
 
     appointment = Appointment.objects.create(
         owner=draft.owner,
@@ -99,6 +115,7 @@ def _create_appointment(draft: IntentDraft, result: IntentResult) -> tuple[str, 
         location=result.location or "",
         starts_at=starts_at,
         ends_at=ends_at,
+        all_day=result.all_day,
         source=Source.VOICE,
     )
     sync_appointment_reminder(appointment, result.reminder_offset, source=Source.VOICE)
@@ -110,11 +127,13 @@ def _create_reminder(draft: IntentDraft, result: IntentResult) -> tuple[str, int
 
     if result.date is None:
         raise DraftError("Alarma are nevoie de o dată.")
+    if result.start_time is None:
+        raise DraftError("Alarma are nevoie de o oră.")
     reminder = Reminder.objects.create(
         owner=draft.owner,
         title=result.title or "Alarmă",
         description=result.description or "",
-        remind_at=_aware(result.date, result.start_time),
+        remind_at=_aware(result.date, result.start_time, _user_tz(draft)),
         source=Source.VOICE,
     )
     return ItemKind.REMINDER, reminder.pk
@@ -135,7 +154,7 @@ def _follow_up_email(draft: IntentDraft, result: IntentResult) -> tuple[str, int
 
     email.status = EmailReference.Status.FOLLOW_UP
     email.follow_up_at = (
-        _aware(result.date, result.start_time)
+        _aware(result.date, result.start_time or FOLLOW_UP_TIME, _user_tz(draft))
         if result.date
         else timezone.now() + timedelta(days=1)
     )
@@ -171,20 +190,23 @@ def _update_item(draft: IntentDraft, result: IntentResult) -> tuple[str, int]:
             setattr(obj, target_field, value)
             changed.append(target_field)
 
+    tz = _user_tz(draft)
     if kind == ItemKind.APPOINTMENT and result.date:
-        current_time = timezone.localtime(obj.starts_at).time()
-        starts_at = _aware(result.date, result.start_time or current_time)
+        current_time = timezone.localtime(obj.starts_at, tz).time()
+        starts_at = _aware(result.date, result.start_time or current_time, tz)
         # Durata se citeste inainte de mutarea inceputului, altfel ar iesi gresita.
         duration = obj.duration or timedelta(hours=1)
         obj.starts_at = starts_at
         # O ora de final rostita sau editata are prioritate; altfel pastram durata.
         obj.ends_at = (
-            _aware(result.date, result.end_time) if result.end_time else starts_at + duration
+            _aware(result.date, result.end_time, tz) if result.end_time else starts_at + duration
         )
         changed += ["starts_at", "ends_at"]
     elif kind == ItemKind.REMINDER and (result.date or result.start_time):
-        current = timezone.localtime(obj.remind_at)
-        obj.remind_at = _aware(result.date or current.date(), result.start_time or current.time())
+        current = timezone.localtime(obj.remind_at, tz)
+        obj.remind_at = _aware(
+            result.date or current.date(), result.start_time or current.time(), tz
+        )
         obj.status = obj.Status.SCHEDULED
         obj.notification_sent_at = None
         changed += ["remind_at", "status", "notification_sent_at"]

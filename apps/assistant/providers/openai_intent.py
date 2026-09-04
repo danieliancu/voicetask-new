@@ -27,7 +27,11 @@ Transformi o singură propoziție rostită de utilizator într-un obiect JSON.
 
 Reguli obligatorii:
 - Nu inventa date, ore, sume, persoane sau locații care nu apar în text.
-- Dacă utilizatorul nu spune o dată, lasă `date` null. Nu ghici.
+- Dacă utilizatorul nu spune o dată, lasă `date` null. Nu ghici. La fel pentru oră:
+  data și ora sunt oricum recitite din transcriere de un parser determinist, iar o
+  valoare inventată este ștearsă sau semnalată ca neconcordanță — nu ajută cu nimic.
+- `all_day` este true doar dacă utilizatorul a spus explicit că evenimentul ține
+  toată ziua. Nu îl folosi ca să eviți o oră pe care nu ai auzit-o.
 - `intent` este exact una dintre valorile permise.
 - `title` este o etichetă scurtă, nu propoziția rostită. Maximum 6 cuvinte, fără
   verbul de comandă și fără nimic care are deja câmpul lui: dată, oră, locație,

@@ -102,3 +102,37 @@ def test_peste_n_ore_calculeaza_de_la_momentul_curent():
 def test_ora_locala_reala_nu_arunca():
     """Rulare cu momentul curent, ca sa prindem regresii dependente de fus."""
     assert ro_time.extract("mâine la 9", now=timezone.localtime()).at_time == time(9, 0)
+
+
+def test_partea_de_zi_cea_mai_lunga_castiga():
+    """„amiaza" este continut in „dupa-amiaza"; ordinea de cautare conteaza."""
+    assert extract("mâine după-amiaza").at_time == time(15, 0)
+    assert extract("mâine la amiază").at_time == time(12, 0)
+
+
+@pytest.mark.parametrize(
+    "text,asteptat",
+    [("la trei", time(15, 0)), ("la două", time(14, 0)), ("la zece", time(10, 0))],
+)
+def test_ora_rostita_in_cuvinte_este_recunoscuta(text, asteptat):
+    assert extract(text).at_time == asteptat
+
+
+@pytest.mark.parametrize("text", ["la o întâlnire", "la un control", "la noua adresă"])
+def test_prepozitia_urmata_de_substantiv_nu_devine_ora(text):
+    assert extract(text).at_time is None
+
+
+@pytest.mark.parametrize(
+    "text,are_zi,are_ora",
+    [
+        ("Mă întâlnesc mâine cu Ion.", True, False),
+        ("Programează o întâlnire cu Ion.", False, False),
+        ("Mă văd vineri la trei.", True, True),
+        ("Cumpăr lapte și pâine.", False, False),
+        ("Sună-l pe Ion la 14:30.", False, True),
+    ],
+)
+def test_marcajele_temporale_sunt_detectate_separat(text, are_zi, are_ora):
+    assert ro_time.has_date_marker(text) is are_zi
+    assert ro_time.has_time_marker(text) is are_ora

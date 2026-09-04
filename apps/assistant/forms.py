@@ -5,6 +5,7 @@ from __future__ import annotations
 from django import forms
 from django.utils import timezone
 
+from apps.accounts.models import UserPreference
 from apps.assistant.schemas import Intent, IntentResult
 from apps.core.enums import ItemKind
 from apps.core.registry import model_for_kind
@@ -48,23 +49,25 @@ def _initial_from_target(draft) -> dict:
     if kind == ItemKind.NOTE:
         return {"title": obj.title, "description": obj.content}
 
+    tz = UserPreference.for_user(draft.owner).tzinfo
     if kind == ItemKind.APPOINTMENT:
-        starts = timezone.localtime(obj.starts_at)
+        starts = timezone.localtime(obj.starts_at, tz)
         return {
             "title": obj.title,
             "description": obj.description,
             "location": obj.location,
             "date": starts.date(),
-            "start_time": starts.time().replace(second=0, microsecond=0),
+            "start_time": None if obj.all_day else starts.time().replace(second=0, microsecond=0),
+            "all_day": obj.all_day,
             "end_time": (
-                timezone.localtime(obj.ends_at).time().replace(second=0, microsecond=0)
-                if obj.ends_at
+                timezone.localtime(obj.ends_at, tz).time().replace(second=0, microsecond=0)
+                if obj.ends_at and not obj.all_day
                 else None
             ),
         }
 
     if kind == ItemKind.REMINDER:
-        remind = timezone.localtime(obj.remind_at)
+        remind = timezone.localtime(obj.remind_at, tz)
         return {
             "title": obj.title,
             "description": obj.description,
@@ -104,6 +107,7 @@ class DraftForm(forms.Form):
     end_time = forms.TimeField(
         label="Ora de final", required=False, widget=forms.TimeInput(attrs={"type": "time"})
     )
+    all_day = forms.BooleanField(label="Toată ziua", required=False)
     location = forms.CharField(label="Locație", required=False, max_length=200)
     person = forms.CharField(label="Persoană", required=False, max_length=120)
     reminder_offset = forms.TypedChoiceField(
@@ -127,6 +131,7 @@ class DraftForm(forms.Form):
                 "date": result.date,
                 "start_time": result.start_time,
                 "end_time": result.end_time,
+                "all_day": result.all_day,
                 "location": result.location,
                 "person": result.person,
                 "reminder_offset": result.reminder_offset,
@@ -148,11 +153,30 @@ class DraftForm(forms.Form):
             ]
 
     def clean(self):
+        """Ultima verificare inainte de salvare.
+
+        Butonul dezactivat si politica de clarificare tin de interfata; aici se
+        decide efectiv. O programare sau o alarma fara ora nu trece, oricat de
+        completa ar parea schita — singura exceptie este „toată ziua", cerut
+        explicit de utilizator.
+        """
         data = super().clean()
         intent = data.get("intent")
-        if intent in {Intent.CREATE_APPOINTMENT, Intent.CREATE_REMINDER} and not data.get("date"):
-            self.add_error("date", "Alege o dată.")
+        all_day = data.get("all_day")
         start, end = data.get("start_time"), data.get("end_time")
+
+        if intent in {Intent.CREATE_APPOINTMENT, Intent.CREATE_REMINDER}:
+            if not data.get("date"):
+                self.add_error("date", "Alege o dată.")
+            if not start and not (all_day and intent == Intent.CREATE_APPOINTMENT):
+                self.add_error("start_time", "Alege o oră.")
+
+        if all_day:
+            if intent != Intent.CREATE_APPOINTMENT:
+                self.add_error("all_day", "Doar o programare poate fi pe toată ziua.")
+            elif start or end:
+                self.add_error("all_day", "O programare pe toată ziua nu are oră.")
+
         if start and end and end < start:
             self.add_error("end_time", "Ora de final nu poate fi înaintea celei de început.")
         return data
@@ -167,6 +191,7 @@ class DraftForm(forms.Form):
             "date": data["date"].isoformat() if data.get("date") else None,
             "start_time": data["start_time"].isoformat() if data.get("start_time") else None,
             "end_time": data["end_time"].isoformat() if data.get("end_time") else None,
+            "all_day": bool(data.get("all_day")) and data["intent"] == Intent.CREATE_APPOINTMENT,
             "location": data.get("location") or None,
             "person": data.get("person") or None,
             "reminder_offset": data.get("reminder_offset"),

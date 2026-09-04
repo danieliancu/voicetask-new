@@ -54,6 +54,9 @@ class IntentResult(BaseModel):
     date: date_type | None = None
     start_time: time_type | None = None
     end_time: time_type | None = None
+    #: Programare pe toata ziua. Singura cale prin care o programare poate fi
+    #: salvata fara ora: altfel ora lipsa este ceruta, nu presupusa.
+    all_day: bool = False
     location: str | None = Field(default=None, max_length=200)
     reminder_offset: int | None = Field(default=None, ge=0, le=10080)
     search_query: str | None = Field(default=None, max_length=200)
@@ -79,6 +82,10 @@ class IntentResult(BaseModel):
     def check_coherence(self) -> IntentResult:
         if self.end_time and self.start_time and self.end_time < self.start_time:
             raise ValueError("Ora de final nu poate fi înaintea orei de început.")
+        if self.all_day and self.intent != Intent.CREATE_APPOINTMENT:
+            raise ValueError("Doar o programare poate fi pe toată ziua.")
+        if self.all_day and (self.start_time or self.end_time):
+            raise ValueError("O programare pe toată ziua nu are oră.")
         if self.intent == Intent.SEARCH and not self.search_query:
             raise ValueError("Intenția de căutare are nevoie de un termen.")
         if self.clarification_required and not self.clarification_question:

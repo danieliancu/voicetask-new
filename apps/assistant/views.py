@@ -11,8 +11,8 @@ from django.urls import reverse
 from django.views.decorators.http import require_POST
 from django.views.generic import TemplateView
 
+from apps.assistant import clarify, services
 from apps.assistant import drafts as drafts_module
-from apps.assistant import services
 from apps.assistant.forms import DraftForm, TextCommandForm
 from apps.assistant.models import IntentDraft, VoiceCapture
 from apps.assistant.schemas import Intent, IntentResult
@@ -155,39 +155,51 @@ def draft_clarify(request, uid):
     if chosen:
         kind, _, pk = chosen.partition(":")
         if kind and pk.isdigit() and model_for_kind(kind) is not None:
-            draft.target_kind = kind
-            draft.target_id = int(pk)
-            draft.payload = {**draft.payload, "target_kind": kind, "target_id": int(pk)}
-            draft.status = IntentDraft.Status.DRAFT
-            draft.clarification_question = ""
-            draft.save(
-                update_fields=[
-                    "target_kind",
-                    "target_id",
-                    "payload",
-                    "status",
-                    "clarification_question",
-                    "updated_at",
-                ]
+            result = services.result_from_draft(draft)
+            services.update_draft(
+                draft, result.model_copy(update={"target_kind": kind, "target_id": int(pk)})
             )
         return _render_draft(request, draft)
 
     answer = request.POST.get("raspuns", "").strip()
-    if answer:
-        combined = f"{draft.source_text}. {answer}"
-        new_draft = services.interpret(
-            request.user,
-            combined,
-            capture=draft.capture,
-            mode="edit" if draft.target_id else "create",
-            target_kind=draft.target_kind or None,
-            target_id=draft.target_id,
-        )
-        draft.status = IntentDraft.Status.DISCARDED
-        draft.save(update_fields=["status", "updated_at"])
-        return _render_draft(request, new_draft)
+    if not answer:
+        return _render_draft(request, draft)
 
-    return _render_draft(request, draft)
+    result = services.result_from_draft(draft)
+    reason = services.pending_reason(draft)
+    context = services.build_context(
+        request.user,
+        mode="edit" if draft.target_id else "create",
+        target_kind=draft.target_kind or None,
+        target_id=draft.target_id,
+    )
+    updated, outcome = clarify.apply_answer(result, answer, reason, context)
+
+    if outcome == clarify.Outcome.MERGED:
+        # Aceeasi schita, completata. Nimic din ce fusese deja extras nu se pierde,
+        # iar raspunsul nu este citit ca o comanda noua.
+        services.update_draft(draft, updated, answer=answer)
+        return _render_draft(request, draft)
+
+    if outcome == clarify.Outcome.NOT_UNDERSTOOD:
+        # Intrebarea era despre un camp anume, iar raspunsul nu il contine. A
+        # reinterpreta tot textul aici ar risca sa strice ce era deja bun.
+        draft.clarification_question = f"Nu am înțeles. {draft.clarification_question}"[:300]
+        draft.save(update_fields=["clarification_question", "updated_at"])
+        return _render_draft(request, draft)
+
+    # Reformulare: interpretarea veche este chiar cea pusa la indoiala.
+    new_draft = services.interpret(
+        request.user,
+        answer,
+        capture=draft.capture,
+        mode="edit" if draft.target_id else "create",
+        target_kind=draft.target_kind or None,
+        target_id=draft.target_id,
+    )
+    draft.status = IntentDraft.Status.DISCARDED
+    draft.save(update_fields=["status", "updated_at"])
+    return _render_draft(request, new_draft)
 
 
 @login_required
