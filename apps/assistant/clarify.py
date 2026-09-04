@@ -18,6 +18,7 @@ from enum import StrEnum
 from apps.assistant import ro_time
 from apps.assistant.schemas import Intent, IntentResult
 from apps.core.providers.context import IntentContext
+from apps.search.normalize import normalize
 
 #: Motivele care intreaba despre zi.
 DATE_REASONS = frozenset(
@@ -47,6 +48,15 @@ TEXT_REASONS = {
     "continut_lipseste": "title",
     "termen_cautare_lipseste": "search_query",
 }
+
+#: Motivele la care intrebarea este „am inteles X, e corect?" — raspunsul poate fi
+#: un simplu da sau nu.
+CONFIRMATION_REASONS = frozenset({"data_in_conflict", "ora_in_conflict"})
+
+#: Raspunsuri scurte de acceptare, respectiv de respingere. Comparatia se face pe
+#: textul normalizat (litere mici, fara diacritice), deci „Da." si „DA" ajung aici.
+DA = frozenset({"da", "corect", "e corect", "da e corect", "exact", "asa e", "confirm"})
+NU = frozenset({"nu", "nu e corect", "gresit", "e gresit", "nu asa", "nu e asa"})
 
 #: Motivele la care raspunsul asteptat este comanda rostita din nou. Aici nu exista
 #: un camp de completat si nici ceva de pastrat: interpretarea veche este cea pusa
@@ -83,6 +93,18 @@ def apply_answer(
     data = result.model_dump()
     ambiguity = list(data.get("ambiguity") or [])
     understood = False
+
+    if reason in CONFIRMATION_REASONS:
+        confirmat = _yes_no(text)
+        if confirmat is True:
+            # Valoarea pastrata era cea buna: conflictul se stinge, restul ramane.
+            return _finalizeaza(data, [code for code in ambiguity if code != reason])
+        if confirmat is False:
+            # Nu mai exista nicio valoare in care sa avem incredere. O golim, iar
+            # `policy.missing_fields` o cere din nou, cu intrebarea ei obisnuita.
+            data["date" if reason == "data_in_conflict" else "start_time"] = None
+            data["end_time"] = None
+            return _finalizeaza(data, [code for code in ambiguity if code != reason])
 
     ajustata = _disambiguate_hour(result.start_time, text) if reason == "ora_ambigua" else None
     if ajustata is not None:
@@ -125,6 +147,16 @@ def _finalizeaza(data: dict, ambiguity: list[str]) -> tuple[IntentResult, Outcom
     data["clarification_required"] = False
     data["clarification_question"] = None
     return IntentResult.model_validate(data), Outcome.MERGED
+
+
+def _yes_no(answer: str) -> bool | None:
+    """`True` la acceptare, `False` la respingere, `None` daca raspunsul spune altceva."""
+    curatat = normalize(answer).strip(" .,;:!?")
+    if curatat in DA:
+        return True
+    if curatat in NU:
+        return False
+    return None
 
 
 def _disambiguate_hour(current: time | None, answer: str) -> time | None:

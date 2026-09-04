@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from django.conf import settings
 
 from apps.assistant.schemas import Intent, IntentResult
+from apps.core import dates_ro
 
 QUESTIONS = {
     "data_lipseste": "Pentru ce dată să o programez?",
@@ -62,6 +63,16 @@ REQUIRED_FIELDS: dict[Intent, tuple[tuple[str, str], ...]] = {
 
 
 def question_for(result: IntentResult, reason: str) -> str:
+    """Intrebarea pusa pentru un motiv, formulata pe starea schitei.
+
+    La conflict, intrebarea trebuie sa spuna ce a inteles aplicatia. „Spune încă o
+    dată ziua" pune utilizatorul sa repete fara sa stie ce s-a retinut; „Am notat
+    vineri, 11 septembrie. Este ziua corectă?" se poate confirma cu un cuvant.
+    """
+    if reason == "data_in_conflict" and result.date is not None:
+        return f"Am notat {dates_ro.format_weekday_date(result.date)}. Este ziua corectă?"
+    if reason == "ora_in_conflict" and result.start_time is not None:
+        return f"Am notat ora {result.start_time:%H:%M}. Este corectă?"
     return QUESTIONS_BY_INTENT.get((result.intent, reason)) or QUESTIONS.get(
         reason, QUESTIONS["incredere_mica"]
     )

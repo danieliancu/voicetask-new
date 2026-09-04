@@ -12,6 +12,7 @@ import json
 from django.conf import settings
 
 from apps.assistant.schemas import JSON_SCHEMA, Intent
+from apps.core import dates_ro
 from apps.core.providers.base import (
     IntentParserProvider,
     ProviderError,
@@ -33,6 +34,10 @@ Reguli obligatorii:
 - `all_day` este true doar dacă utilizatorul a spus explicit că evenimentul ține
   toată ziua. Nu îl folosi ca să eviți o oră pe care nu ai auzit-o.
 - `intent` este exact una dintre valorile permise.
+- Ziua se calculează față de `azi`, primit în context. O zi a săptămânii rostită
+  fără alt indiciu înseamnă următoarea zi cu acel nume: „vineri", spus într-o zi
+  de vineri, este vinerea următoare, nu azi. O dată fără an care a trecut deja
+  este anul viitor.
 - `title` este o etichetă scurtă, nu propoziția rostită. Maximum 6 cuvinte, fără
   verbul de comandă și fără nimic care are deja câmpul lui: dată, oră, locație,
   persoană, sumă. Repetate în titlu, ar apărea de două ori în interfață.
@@ -78,6 +83,11 @@ class OpenAIIntentParser(IntentParserProvider):
             {
                 "comanda": text,
                 "acum": context.now.isoformat(),
+                # Ziua si numele ei, scrise explicit: din `acum` in ISO modelul
+                # trebuie sa deduca singur ziua saptamanii, iar cand greseste apare
+                # un conflict cu parserul determinist si o intrebare inutila.
+                "azi": context.now.date().isoformat(),
+                "zi_saptamana": dates_ro.WEEKDAYS[context.now.weekday()],
                 "fus_orar": context.timezone_name,
                 "mod": context.mode,
                 "tinta_curenta": (

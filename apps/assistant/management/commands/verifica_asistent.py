@@ -23,7 +23,8 @@ from django.db import transaction
 
 from apps.accounts.models import UserPreference
 from apps.assistant import clarify, policy, services
-from apps.core.providers.registry import get_provider
+from apps.core.providers.base import IntentParserProvider
+from apps.core.providers.registry import get_provider, override_provider
 
 #: Frazele din raportul de problema, in ordinea in care au fost cerute. Unde exista
 #: un raspuns, comanda simuleaza si runda de clarificare.
@@ -35,17 +36,42 @@ FRAZE: tuple[tuple[str, str | None], ...] = (
     ("Programează o întâlnire mâine cu Ion.", None),
     ("Mă întâlnesc poimâine la 14 cu Ana.", None),
     ("Mă întâlnesc poimâine la două cu Ana.", "După-amiaza."),
-    ("Mă văd vineri la 10 cu Maria.", None),
-    ("Mă întâlnesc pe 5 septembrie la 14:30 cu Ion.", None),
+    ("Mă văd vineri la 10 cu Maria.", "Da."),
+    ("Mă întâlnesc pe 5 septembrie la 14:30 cu Ion.", "Da."),
     ("Peste două săptămâni mă întâlnesc cu medicul.", "La ora 11."),
     ("Mă întâlnesc mâine dimineață.", None),
-    ("Mă întâlnesc vineri la 3.", "După-amiaza."),
-    ("Mă văd vineri la trei.", "După-amiaza."),
+    ("Mă întâlnesc vineri la 3.", "Da."),
+    ("Mă văd vineri la trei.", "Da."),
     ("Programează o întâlnire cu Ion.", "Mâine la 10."),
     ("Programează o întâlnire cu medicul.", None),
 )
 
 CAMPURI = ("intent", "date", "start_time", "end_time", "all_day", "title", "person", "location")
+
+
+class _Inregistrat(IntentParserProvider):
+    """Providerul configurat, cu raspunsul brut retinut pentru afisare.
+
+    Fluxul ramane cel real — `services.interpret` nu stie de diferenta — dar
+    raspunsul modelului se poate pune alaturi de schita reconciliata. Fara el, un
+    „nu sunt sigur de dată" nu spune cine si cu ce a gresit.
+    """
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.name = inner.name
+        self.is_mock = inner.is_mock
+        self.ultimul: dict | None = None
+
+    def is_available(self) -> bool:
+        return self.inner.is_available()
+
+    def describe(self) -> dict:
+        return self.inner.describe()
+
+    def parse(self, text: str, *, context) -> dict:
+        self.ultimul = self.inner.parse(text, context=context)
+        return dict(self.ultimul)
 
 
 class Command(BaseCommand):
@@ -87,10 +113,11 @@ class Command(BaseCommand):
         else:
             perechi = list(FRAZE)
 
+        inregistrat = _Inregistrat(provider)
         # Tot ce se creeaza aici este material de verificare, nu date reale.
-        with transaction.atomic():
+        with transaction.atomic(), override_provider("intent", inregistrat):
             for text, answer in perechi:
-                self._verifica(user, text, answer)
+                self._verifica(user, text, answer, inregistrat)
             transaction.set_rollback(True)
 
     # ------------------------------------------------------------------ intern
@@ -107,9 +134,10 @@ class Command(BaseCommand):
             raise CommandError("Nu există niciun utilizator. Creează unul cu createsuperuser.")
         return user
 
-    def _verifica(self, user, text: str, answer: str | None) -> None:
+    def _verifica(self, user, text: str, answer: str | None, inregistrat) -> None:
         self.stdout.write(self.style.MIGRATE_HEADING(f"„{text}”"))
         draft = services.interpret(user, text)
+        self._arata_modelul(inregistrat.ultimul)
         self._arata(draft)
 
         if not answer:
@@ -133,6 +161,15 @@ class Command(BaseCommand):
         services.update_draft(draft, updated, answer=answer)
         self._arata(draft)
         self.stdout.write("")
+
+    def _arata_modelul(self, payload: dict | None) -> None:
+        if payload is None:
+            return
+        interesante = {
+            name: payload.get(name) for name in ("intent", "date", "start_time", "title", "person")
+        }
+        valori = " · ".join(f"{name}={value!r}" for name, value in interesante.items())
+        self.stdout.write(f"  model: {valori}")
 
     def _arata(self, draft) -> None:
         result = services.result_from_draft(draft)

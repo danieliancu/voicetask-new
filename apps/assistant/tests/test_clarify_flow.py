@@ -224,3 +224,59 @@ def test_partea_de_zi_muta_ora_in_dimineata(auth_client, user):
 
     draft.refresh_from_db()
     assert draft.payload["start_time"] == "02:00:00"
+
+
+def schita_cu_conflict_de_data(user):
+    """Modelul sare o săptămână peste ziua pe care o citește `ro_time`."""
+    model = ModelSimulat(
+        intent=Intent.CREATE_APPOINTMENT,
+        confidence=0.9,
+        date="2026-09-11",
+        start_time="10:00",
+        person="Maria",
+        title="Întâlnire cu Maria",
+    )
+    with time_machine.travel(ACUM, tick=False), override_provider("intent", model):
+        return services.interpret(user, "Mă văd vineri la 10 cu Maria.")
+
+
+def test_intrebarea_de_conflict_spune_ce_a_inteles_aplicatia(user):
+    draft = schita_cu_conflict_de_data(user)
+
+    assert draft.payload["date"] == "2026-09-04"
+    assert "data_in_conflict" in draft.payload["ambiguity"]
+    assert draft.clarification_question == "Am notat Vineri, 4 septembrie. Este ziua corectă?"
+
+
+@pytest.mark.parametrize("raspuns", ["Da.", "da", "Corect", "EXACT"])
+def test_un_da_confirma_data_si_deblocheaza_schita(auth_client, user, raspuns):
+    draft = schita_cu_conflict_de_data(user)
+    raspunde(auth_client, draft, raspuns)
+
+    draft.refresh_from_db()
+    assert draft.payload["date"] == "2026-09-04"
+    assert draft.payload["start_time"] == "10:00:00"
+    assert draft.payload["person"] == "Maria"
+    assert draft.status == IntentDraft.Status.DRAFT
+
+
+def test_un_nu_goleste_data_si_o_cere_din_nou(auth_client, user):
+    """După un „nu" nu mai există nicio dată de încredere; nu se păstrează niciuna."""
+    draft = schita_cu_conflict_de_data(user)
+    raspunde(auth_client, draft, "Nu.")
+
+    draft.refresh_from_db()
+    assert draft.payload["date"] is None
+    assert draft.payload["start_time"] == "10:00:00"
+    assert draft.payload["person"] == "Maria"
+    assert draft.status == IntentDraft.Status.NEEDS_CLARIFICATION
+    assert draft.clarification_question == "Pentru ce dată să o programez?"
+
+
+def test_o_data_rostita_in_locul_lui_da_inlocuieste_valoarea(auth_client, user):
+    draft = schita_cu_conflict_de_data(user)
+    raspunde(auth_client, draft, "Pe 5 septembrie.")
+
+    draft.refresh_from_db()
+    assert draft.payload["date"] == "2026-09-05"
+    assert draft.status == IntentDraft.Status.DRAFT
