@@ -4,7 +4,7 @@
 {% block title %}{{ note.title }}{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url="/notite/" appbar_title="Notiță" %}
+  {% url 'notes:list' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Notiță" %}
 {% endblock %}
 
 {% block content %}
@@ -33,14 +33,8 @@
     </div>
   </article>
 
-  <div class="row">
-    <a class="btn btn--secondary" href="{% url 'notes:update' note.pk %}">{% icon "pencil" 18 %} Modifică</a>
-    <a class="btn btn--ghost" href="{% url 'assistant:edit' 'notita' note.pk %}">{% icon "mic" 18 %} Prin voce</a>
-    <span class="spacer"></span>
-    <button type="button" class="btn btn--danger btn--sm"
-            hx-get="{% url 'notes:delete' note.pk %}" hx-target="#dialog-confirmare" hx-swap="innerHTML">
-      {% icon "trash" 18 %} Șterge
-    </button>
-  </div>
-  <div id="dialog-confirmare"></div>
+  {% url 'notes:update' note.pk as edit_url %}
+  {% url 'assistant:edit' 'notita' note.pk as voice_url %}
+  {% url 'notes:delete' note.pk as delete_url %}
+  {% include "core/_item_actions.html" %}
 {% endblock %}

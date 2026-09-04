@@ -5,9 +5,15 @@
     <span class="card__icon" data-tab="violet">{% icon "sparkles" 20 %}</span>
     <h2 id="titlu-schita" style="font-size:var(--fs-lg)">{{ result.label }}</h2>
     <span class="spacer"></span>
-    <span class="badge {% if draft.confidence < 0.55 %}badge--warning{% else %}badge--accent{% endif %}">
-      Încredere {{ draft.confidence|procent }}
-    </span>
+    {% comment %}
+    O notita dictata nu a fost interpretata, deci nu exista niciun scor de raportat.
+    Un procent acolo ar sugera o intelegere care nu s-a intamplat.
+    {% endcomment %}
+    {% if not result.verbatim %}
+      <span class="badge {% if draft.confidence < 0.55 %}badge--warning{% else %}badge--accent{% endif %}">
+        Încredere {{ draft.confidence|procent }}
+      </span>
+    {% endif %}
   </div>
 
   {% if draft.source_text %}
@@ -54,7 +60,25 @@
         hx-target="#schita-{{ draft.uid }}" hx-swap="outerHTML"
         class="stack">
     {% csrf_token %}
-    {% if not is_destructive %}
+    {% if not is_destructive and form %}
+      {% if form.selected_email %}
+        {% comment %}
+        Expeditorul si subiectul emailului ales, doar pentru verificare. Sunt ale
+        mesajului, nu ale schitei, deci nu se completeaza de mana.
+        {% endcomment %}
+        <div class="detail-list">
+          <div class="detail-row">
+            <span class="detail-row__icon">{% icon "mail" 20 %}</span>
+            <span><span class="detail-row__label">Expeditor</span>
+              <span class="detail-row__value">{{ form.selected_email.sender_name }}</span></span>
+          </div>
+          <div class="detail-row">
+            <span class="detail-row__icon">{% icon "text" 20 %}</span>
+            <span><span class="detail-row__label">Subiect</span>
+              <span class="detail-row__value">{{ form.selected_email.subject|default:"Fără subiect" }}</span></span>
+          </div>
+        </div>
+      {% endif %}
       {% include "core/_form_fields.html" with form=form %}
     {% endif %}
 

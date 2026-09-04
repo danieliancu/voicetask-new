@@ -565,6 +565,16 @@
   padding-block: var(--space-1);
 }
 
+/* Banda saptamanii, selectorul si agenda stateau ca fii directi ai `.app__main`,
+   care le distanta cu `gap`. Acum sunt invelite intr-un bloc comun, ca sa se poata
+   schimba impreuna la un swap HTMX, deci blocul preia el aceeasi distantare. */
+.calendar-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-width: 0;
+}
+
 .segmented {
   display: grid;
   grid-auto-flow: column;

@@ -4,7 +4,7 @@
 {% block title %}{{ title }}{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url="/programari/alarme/" appbar_title=title %}
+  {% url 'scheduling:reminder_list' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title=title %}
 {% endblock %}
 
 {% block content %}

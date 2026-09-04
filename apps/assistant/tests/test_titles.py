@@ -44,3 +44,24 @@ def test_numele_locului_se_opreste_inainte_de_ora():
 
     assert payload["location"] == "clinica Regina Maria"
     assert payload["start_time"].hour == 9
+
+
+@pytest.mark.parametrize(
+    "text, expected",
+    [
+        ("Mă întâlnesc vineri la 3 cu Ion.", "Întâlnire cu Ion"),
+        ("Mă întâlnesc vineri la 3.", "Întâlnire"),
+        ("Mă văd mâine cu medicul.", "Întâlnire cu medicul"),
+        ("Am control luni la 10.", "Control medical"),
+        ("Ne vedem mâine la 10 cu Ana.", "Întâlnire cu Ana"),
+        ("Am întâlnire mâine cu Ion.", "Întâlnire cu Ion"),
+    ],
+)
+def test_verbul_rostit_devine_eticheta_nu_ramane_verb(text, expected):
+    """Un titlu „Mă întâlnesc" nu spune nimic in lista de programari."""
+    assert parse(text)["title"] == expected
+
+
+def test_eticheta_nu_inghite_subiectul_frazei():
+    """„Programare la dentist" este deja o eticheta buna; nu se inlocuieste."""
+    assert parse("Programare mâine la dentist, la ora 12.")["title"] == "Programare la dentist"

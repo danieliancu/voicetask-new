@@ -132,7 +132,7 @@ def test_expresie_temporala_neinteligibila_pastreaza_valoarea_dar_intreaba(user)
         ("Mă văd vineri la 10 cu Maria.", "2026-09-04", "10:00:00"),
         ("Mă întâlnesc pe 5 septembrie la 14:30 cu Ion.", "2026-09-05", "14:30:00"),
         ("Peste două săptămâni mă întâlnesc cu medicul.", "2026-09-15", None),
-        ("Mă întâlnesc mâine dimineață.", MAINE, "09:00:00"),
+        ("Mă întâlnesc mâine la 10:30 cu Ana.", MAINE, "10:30:00"),
     ],
 )
 def test_formele_rostite_ajung_in_campurile_lor(user, text, zi, ora):
@@ -140,6 +140,55 @@ def test_formele_rostite_ajung_in_campurile_lor(user, text, zi, ora):
 
     assert draft.payload["date"] == zi
     assert draft.payload["start_time"] == ora
+
+
+def test_o_perioada_vaga_pastreaza_ziua_si_cere_ora(user):
+    """„Mâine dimineață" nu mai devine tacit 09:00: ziua ramane, ora se cere."""
+    draft = interpreteaza(user, "Mă întâlnesc mâine dimineață.", date=None, start_time=None)
+
+    assert draft.payload["date"] == MAINE
+    assert draft.payload["start_time"] is None
+    assert draft.status == IntentDraft.Status.NEEDS_CLARIFICATION
+    assert draft.clarification_question == "La ce oră dimineața?"
+
+
+def test_intervalul_rostit_ajunge_in_ambele_campuri(user):
+    draft = interpreteaza(
+        user, "Ședință mâine de la 10 la 12.", date=None, start_time=None, end_time=None
+    )
+
+    assert draft.payload["start_time"] == "10:00:00"
+    assert draft.payload["end_time"] == "12:00:00"
+
+
+def test_intervalul_modelului_diferit_de_text_blocheaza_confirmarea(user):
+    draft = interpreteaza(
+        user,
+        "Ședință mâine de la 10 la 12.",
+        date=None,
+        start_time="10:00",
+        end_time="18:00",
+        title="Ședință",
+    )
+
+    assert draft.payload["end_time"] == "12:00:00"
+    assert "ora_final_in_conflict" in draft.payload["ambiguity"]
+    assert draft.status == IntentDraft.Status.NEEDS_CLARIFICATION
+
+
+def test_ora_de_final_inventata_este_scoasa(user):
+    """Textul nu contine niciun interval; ora de final a modelului nu are sustinere."""
+    draft = interpreteaza(
+        user,
+        "Mă întâlnesc mâine la 10 cu Ion.",
+        date=None,
+        start_time=None,
+        end_time="11:00",
+        title="Întâlnire cu Ion",
+    )
+
+    assert draft.payload["start_time"] == "10:00:00"
+    assert draft.payload["end_time"] is None
 
 
 @pytest.mark.parametrize("text", ["Mă întâlnesc vineri la 3.", "Mă văd vineri la trei."])

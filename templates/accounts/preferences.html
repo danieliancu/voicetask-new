@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load icons %}
 {% block title %}Setări{% endblock %}
-{% block header %}{% include "core/_appbar.html" with back_url="/" appbar_title="Setări" %}{% endblock %}
+{% block header %}{% url 'core:home' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Setări" %}{% endblock %}
 {% block content %}
   <form method="post" class="stack">
     {% csrf_token %}

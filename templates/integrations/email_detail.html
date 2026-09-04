@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load icons ro %}
 {% block title %}{{ email.subject|default:email.sender_name }}{% endblock %}
-{% block header %}{% include "core/_appbar.html" with back_url="/integrari/emailuri/" appbar_title="Email" %}{% endblock %}
+{% block header %}{% url 'integrations:email_list' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Email" %}{% endblock %}
 {% block content %}
   <article class="card" data-tab="blue">
     <div class="card__body" style="flex-direction:column;align-items:stretch;gap:var(--space-3)">

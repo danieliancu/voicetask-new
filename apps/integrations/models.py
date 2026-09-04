@@ -94,6 +94,9 @@ class EmailReference(OwnedSoftDeleteModel, TimeStampedModel):
     snippet = models.CharField("fragment", max_length=400, blank=True)
     received_at = models.DateTimeField("primit la", db_index=True)
     follow_up_at = models.DateTimeField("de urmărit la", null=True, blank=True, db_index=True)
+    #: Nota scrisa de utilizator la marcarea pentru urmarire. `snippet` nu poate tine
+    #: locul ei: acela vine de la Gmail si se rescrie la fiecare sincronizare.
+    follow_up_note = models.TextField("notă", blank=True)
     status = models.CharField(
         "stare", max_length=12, choices=Status.choices, default=Status.NEW, db_index=True
     )

@@ -5,7 +5,9 @@
   top: 0;
   z-index: var(--z-sticky);
   display: grid;
-  grid-template-columns: var(--tap-min) minmax(0, 1fr) var(--tap-min);
+  /* Coloana din dreapta creste cu numarul de actiuni (lupa + clopotel), iar
+     titlul din mijloc are `min-width: 0`, deci se restrange in loc sa le impinga. */
+  grid-template-columns: var(--tap-min) minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-3) var(--space-4);
@@ -32,6 +34,12 @@
 
 .appbar__title .icon {
   color: var(--color-accent);
+}
+
+.appbar__actions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
 }
 
 .appbar__action {
@@ -68,8 +76,9 @@
 }
 
 /* --- navigatie inferioara ---------------------------------------------- *
- * Cele patru destinatii sunt fixe pe toate ecranele principale.
- * „Modifică" si „Șterge" sunt actiuni contextuale, nu destinatii.          */
+ * Cinci destinatii fixe. „Modifică" si „Șterge" erau ascunse in meniul lateral,
+ * desi sunt exact ce cauta cineva care vrea sa schimbe ceva; „Caută" a iesit,
+ * fiindca are deja campul mare pe homepage si lupa in appbar.               */
 
 .bottom-nav {
   position: fixed;
@@ -80,7 +89,7 @@
   max-width: var(--app-max-width);
   z-index: var(--z-nav);
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   background: var(--color-bg-elevated);
   border-top: 1px solid var(--color-border);
   padding-bottom: var(--safe-bottom);
@@ -99,11 +108,22 @@
   justify-content: center;
   gap: 2px;
   min-height: var(--nav-height);
-  padding: var(--space-2) var(--space-1);
+  padding: var(--space-2) 2px;
   font-size: var(--fs-xs);
   font-weight: var(--fw-medium);
   color: var(--color-text-muted);
   position: relative;
+  min-width: 0;
+}
+
+/* La 320 px fiecare din cele cinci coloane are 64 px. Eticheta cea mai lunga,
+   „Programări", trebuie sa incapa intreaga pe un rand: se micsoreaza cu latimea
+   ecranului in loc sa treaca pe randul urmator sau sa fie taiata cu „...". */
+.bottom-nav__item > span {
+  font-size: clamp(9px, 2.8vw, var(--fs-xs));
+  line-height: 1.1;
+  white-space: nowrap;
+  letter-spacing: -0.01em;
 }
 
 .bottom-nav__item:hover {

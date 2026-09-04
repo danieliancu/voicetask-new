@@ -5,7 +5,7 @@
 
 {% block header %}
   {% url 'core:home' as home_url %}
-  {% include "core/_appbar.html" with back_url=home_url use_history_back=True appbar_title="Fotografiază documentul" hide_logo=True %}
+  {% include "core/_appbar.html" with back_url=home_url appbar_title="Fotografiază documentul" hide_logo=True %}
 {% endblock %}
 
 {# Ecranul camerei ascunde navigatia inferioara ca sa ramana imersiv. #}

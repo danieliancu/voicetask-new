@@ -1,7 +1,7 @@
 {% load icons %}
 <header class="appbar {% block appbar_class %}{% endblock %}">
   {% if back_url %}
-    <a class="appbar__action" href="{{ back_url }}"{% if use_history_back %} data-history-back{% endif %} aria-label="Înapoi">{% icon "arrow-left" 24 %}</a>
+    <a class="appbar__action" href="{{ back_url }}" aria-label="Înapoi">{% icon "arrow-left" 24 %}</a>
   {% elif request.resolver_match.view_name != "core:home" %}
     <a class="appbar__action" href="{% url 'core:home' %}" aria-label="Înapoi">{% icon "arrow-left" 24 %}</a>
   {% else %}
@@ -16,10 +16,21 @@
   </div>
 
   {% if user.is_authenticated %}
-    <a class="appbar__action" href="{% url 'notifications:inbox' %}" aria-label="Notificări{% if unread_count %} ({{ unread_count }} necitite){% endif %}">
-      {% icon "bell" 24 %}
-      {% if unread_count %}<span class="appbar__badge" aria-hidden="true">{{ unread_count }}</span>{% endif %}
-    </a>
+    <div class="appbar__actions">
+      {% comment %}
+      Cautarea a iesit din bara de jos. Pe homepage ramane campul mare; aici este
+      singura ei cale de acces, asa ca lupa apare pe orice alta pagina.
+      {% endcomment %}
+      {% if request.resolver_match.view_name != "core:home" and request.resolver_match.view_name != "search:index" %}
+        <a class="appbar__action" href="{% url 'search:index' %}" aria-label="Caută">
+          {% icon "search" 24 %}
+        </a>
+      {% endif %}
+      <a class="appbar__action" href="{% url 'notifications:inbox' %}" aria-label="Notificări{% if unread_count %} ({{ unread_count }} necitite){% endif %}">
+        {% icon "bell" 24 %}
+        {% if unread_count %}<span class="appbar__badge" aria-hidden="true">{{ unread_count }}</span>{% endif %}
+      </a>
+    </div>
   {% else %}
     <span class="appbar__action" aria-hidden="true"></span>
   {% endif %}

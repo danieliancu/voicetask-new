@@ -8,7 +8,8 @@
       <a class="month-cell {% if not cell.in_month %}month-cell--outside{% endif %}"
          href="?vizualizare=zi&amp;d={{ cell.day|date:'Y-m-d' }}"
          hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare=zi&amp;d={{ cell.day|date:'Y-m-d' }}"
-         hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
+         hx-target="#calendar" hx-swap="outerHTML"
+       hx-push-url="{% url 'scheduling:calendar' %}?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
          {% if cell.is_selected %}aria-current="date"{% endif %}
          aria-label="{{ cell.day|date:'j F Y' }}{% if cell.count %}, {{ cell.count }} programări{% endif %}">
         <span>{{ cell.day|date:"j" }}</span>

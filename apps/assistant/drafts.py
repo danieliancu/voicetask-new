@@ -18,10 +18,6 @@ from apps.core.enums import ItemKind, Source
 from apps.core.models import AuditLog
 from apps.core.registry import model_for_kind
 
-#: Ora la care se aseaza urmarirea unui email cand nu s-a cerut alta. Programarile
-#: si alarmele nu au un asemenea implicit: acolo ora lipsa se cere, nu se presupune.
-FOLLOW_UP_TIME = time(9, 0)
-
 #: Inceputul unei zile intregi, pentru programarile marcate „toată ziua".
 DAY_START = time(0, 0)
 
@@ -77,12 +73,20 @@ def apply(draft: IntentDraft, *, overrides: dict | None = None) -> tuple[str, in
 
 
 def _create_note(draft: IntentDraft, result: IntentResult) -> tuple[str, int]:
-    from apps.notes.models import Note
+    from apps.notes.models import Note, NoteCategory
+
+    category = None
+    if result.category_id is not None:
+        # Reverificare: id-ul vine din formular, iar formularul poate fi trimis
+        # si fara interfata.
+        category = NoteCategory.objects.filter(pk=result.category_id, owner=draft.owner).first()
 
     note = Note.objects.create(
         owner=draft.owner,
         title=result.title or (draft.source_text[:200] or "Notiță"),
         content=result.description or "",
+        category=category,
+        is_pinned=result.is_pinned,
         source=Source.VOICE,
     )
     return ItemKind.NOTE, note.pk
@@ -142,27 +146,32 @@ def _create_reminder(draft: IntentDraft, result: IntentResult) -> tuple[str, int
 def _follow_up_email(draft: IntentDraft, result: IntentResult) -> tuple[str, int]:
     from apps.integrations.models import EmailReference
 
-    queryset = EmailReference.objects.for_user(draft.owner)
-    if result.person:
-        from apps.search.normalize import normalize
-
-        needle = normalize(result.person)
-        queryset = queryset.filter(match_text__contains=needle)
-    email = queryset.order_by("-received_at").first()
+    # Emailul este ales explicit, nu ghicit. „Cel mai recent care se potriveste"
+    # marca linistit alt email decat cel la care se gandea utilizatorul.
+    target_id = result.target_id or draft.target_id
+    if not target_id:
+        raise DraftError("Alege emailul de urmărit.")
+    email = EmailReference.objects.for_user(draft.owner).filter(pk=target_id).first()
     if email is None:
         raise DraftError("Nu am găsit emailul la care te referi.")
+    if result.date is None:
+        raise DraftError("Urmărirea are nevoie de o dată.")
+    if result.start_time is None:
+        raise DraftError("Urmărirea are nevoie de o oră.")
 
     email.status = EmailReference.Status.FOLLOW_UP
-    email.follow_up_at = (
-        _aware(result.date, result.start_time or FOLLOW_UP_TIME, _user_tz(draft))
-        if result.date
-        else timezone.now() + timedelta(days=1)
-    )
-    email.save(update_fields=["status", "follow_up_at", "updated_at"])
+    email.follow_up_at = _aware(result.date, result.start_time, _user_tz(draft))
+    email.follow_up_note = result.description or ""
+    email.save(update_fields=["status", "follow_up_at", "follow_up_note", "updated_at"])
     return ItemKind.EMAIL, email.pk
 
 
 #: Ce campuri din schita se pot aplica peste fiecare tip de obiect.
+#:
+#: `title` si `description` ajung aici doar cand utilizatorul a cerut explicit
+#: schimbarea lor: `services._apply_edit_rules` le lasa `None` altfel. Fara acea
+#: regula, „Mută programarea la ora 16" rescria si titlul, si descrierea, cu ce
+#: produsese interpretarea.
 UPDATE_FIELDS = {
     ItemKind.NOTE: {"title": "title", "description": "content"},
     ItemKind.APPOINTMENT: {"title": "title", "description": "description", "location": "location"},
@@ -191,15 +200,19 @@ def _update_item(draft: IntentDraft, result: IntentResult) -> tuple[str, int]:
             changed.append(target_field)
 
     tz = _user_tz(draft)
-    if kind == ItemKind.APPOINTMENT and result.date:
-        current_time = timezone.localtime(obj.starts_at, tz).time()
-        starts_at = _aware(result.date, result.start_time or current_time, tz)
+    if kind == ItemKind.APPOINTMENT and (result.date or result.start_time):
+        current = timezone.localtime(obj.starts_at, tz)
+        starts_at = _aware(
+            result.date or current.date(), result.start_time or current.time(), tz
+        )
         # Durata se citeste inainte de mutarea inceputului, altfel ar iesi gresita.
         duration = obj.duration or timedelta(hours=1)
         obj.starts_at = starts_at
         # O ora de final rostita sau editata are prioritate; altfel pastram durata.
         obj.ends_at = (
-            _aware(result.date, result.end_time, tz) if result.end_time else starts_at + duration
+            _aware(starts_at.date(), result.end_time, tz)
+            if result.end_time
+            else starts_at + duration
         )
         changed += ["starts_at", "ends_at"]
     elif kind == ItemKind.REMINDER and (result.date or result.start_time):

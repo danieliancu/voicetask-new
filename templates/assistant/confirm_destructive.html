@@ -1,4 +1,4 @@
 {% extends "base.html" %}
 {% block title %}Confirmă ștergerea{% endblock %}
-{% block header %}{% include "core/_appbar.html" with back_url="/asistent/inregistreaza/" appbar_title="Confirmă" %}{% endblock %}
+{% block header %}{% include "core/_appbar.html" with back_url=parent_url appbar_title="Confirmă" %}{% endblock %}
 {% block content %}{% include "assistant/_confirm_destructive.html" %}{% endblock %}

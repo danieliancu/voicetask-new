@@ -3,7 +3,8 @@
   {% for cell in cal.week %}
     <a class="week-day" href="?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
        hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
-       hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
+       hx-target="#calendar" hx-swap="outerHTML"
+       hx-push-url="{% url 'scheduling:calendar' %}?vizualizare={{ cal.view }}&amp;d={{ cell.day|date:'Y-m-d' }}"
        {% if cell.is_selected %}aria-current="date"{% endif %}>
       <span>{{ cell.weekday_short }}</span>
       <span class="week-day__num">{{ cell.day|date:"j" }}</span>

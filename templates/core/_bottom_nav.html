@@ -1,5 +1,8 @@
 {% load icons %}
-{# Cele patru destinatii sunt fixe. „Modifică" si „Șterge" sunt pagini secundare. #}
+{% comment %}
+Cele cinci destinatii sunt fixe. „Caută" a iesit din bara: homepage-ul are deja
+campul mare de cautare, iar paginile interne au lupa in appbar.
+{% endcomment %}
 <nav class="bottom-nav" aria-label="Navigație principală">
   <a class="bottom-nav__item" href="{% url 'core:home' %}"
      {% if page == "home" %}aria-current="page"{% endif %}>
@@ -9,12 +12,20 @@
      {% if page == "notes" %}aria-current="page"{% endif %}>
     {% icon "note" 24 %}<span>Notițe</span>
   </a>
+  <a class="bottom-nav__item" href="{% url 'core:edit_hub' %}"
+     {% if page == "edit" %}aria-current="page"{% endif %}>
+    {% icon "pencil" 24 %}<span>Modifică</span>
+  </a>
+  {% comment %}
+  Deschide doar ecranul de alegere. Stergerea propriu-zisa cere confirmare acolo,
+  asa ca iconul ramane neutru aici: rosul l-ar face sa para o actiune imediata.
+  {% endcomment %}
+  <a class="bottom-nav__item" href="{% url 'core:delete_hub' %}"
+     {% if page == "delete" %}aria-current="page"{% endif %}>
+    {% icon "trash" 24 %}<span>Șterge</span>
+  </a>
   <a class="bottom-nav__item" href="{% url 'scheduling:calendar' %}"
      {% if page == "scheduling" %}aria-current="page"{% endif %}>
     {% icon "calendar" 24 %}<span>Programări</span>
-  </a>
-  <a class="bottom-nav__item" href="{% url 'search:index' %}"
-     {% if page == "search" %}aria-current="page"{% endif %}>
-    {% icon "search" 24 %}<span>Caută</span>
   </a>
 </nav>

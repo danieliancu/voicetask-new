@@ -1,0 +1,18 @@
+{% load icons %}
+{% comment %}
+Grupul de actiuni al unei pagini de detaliu. Era copiat in fiecare sablon, pe `.row`,
+care are `flex-wrap: wrap` — deci pe ecrane inguste cele trei butoane treceau pe doua
+randuri. Aici sunt coloane egale, care se ingusteaza impreuna.
+Parametri: edit_url, voice_url si, optional, delete_url.
+{% endcomment %}
+<div class="item-actions">
+  <a class="btn btn--secondary" href="{{ edit_url }}">{% icon "pencil" 18 %} Modifică</a>
+  <a class="btn btn--ghost" href="{{ voice_url }}">{% icon "mic" 18 %} Prin voce</a>
+  {% if delete_url %}
+    <button type="button" class="btn btn--danger"
+            hx-get="{{ delete_url }}" hx-target="#dialog-confirmare" hx-swap="innerHTML">
+      {% icon "trash" 18 %} Șterge
+    </button>
+  {% endif %}
+</div>
+<div id="dialog-confirmare"></div>

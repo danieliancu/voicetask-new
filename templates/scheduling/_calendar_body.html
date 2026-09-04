@@ -1,0 +1,36 @@
+{% load icons %}
+{% comment %}
+Banda saptamanii, selectorul de vizualizare si agenda se schimba impreuna.
+Cat timp selectorul statea in afara tintei HTMX, atributul `aria-pressed` — singurul
+care marcheaza optiunea activa — nu se mai rerandà niciodata dupa un swap, deci
+„Săptămână" si „Lună" nu ramaneau selectate.
+{% endcomment %}
+<div id="calendar" class="calendar-block">
+  {% include "scheduling/_week_strip.html" with cal=cal %}
+
+  <nav class="segmented" aria-label="Mod de vizualizare">
+    {% for key, label in views %}
+      <a class="segmented__item" href="{% url 'scheduling:calendar' %}?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
+         hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
+         hx-target="#calendar" hx-swap="outerHTML"
+         hx-push-url="{% url 'scheduling:calendar' %}?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
+         aria-pressed="{% if cal.view == key %}true{% else %}false{% endif %}">
+        {% icon "calendar" 16 %}{{ label }}
+      </a>
+    {% endfor %}
+  </nav>
+
+  <section class="section" aria-labelledby="titlu-agenda">
+    <div class="section__head">
+      <h2 class="section__title" id="titlu-agenda">Agenda · {{ cal.title }}</h2>
+      <span class="text-sm muted">Ordonate după oră</span>
+    </div>
+    <div id="agenda">
+      {% if cal.view == "luna" %}
+        {% include "scheduling/_month_grid.html" with cal=cal %}
+      {% else %}
+        {% include "scheduling/_agenda.html" with cal=cal %}
+      {% endif %}
+    </div>
+  </section>
+</div>

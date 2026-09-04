@@ -4,7 +4,7 @@
 {% block title %}Documente{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url="/" appbar_title="Documente" %}
+  {% url 'core:home' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Documente" %}
 {% endblock %}
 
 {% block content %}

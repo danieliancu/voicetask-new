@@ -22,4 +22,7 @@ RUN python -c "import compileall, sys; sys.exit(0 if compileall.compile_dir('app
 
 EXPOSE 8000
 
-CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", \n     "--workers", "3", "--threads", "4", "--timeout", "120"]
+# Forma JSON trebuie sa incapa pe o singura linie. Continuarea pe randul urmator,
+# cu un \n literal in interiorul listei, facea JSON-ul invalid: Docker cadea inapoi
+# pe forma shell si imaginea nu pornea.
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "3", "--threads", "4", "--timeout", "120"]

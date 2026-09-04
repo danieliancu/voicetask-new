@@ -4,7 +4,7 @@
 {% block title %}{{ reminder.title }}{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url="/programari/alarme/" appbar_title="Alarmă" %}
+  {% url 'scheduling:reminder_list' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Alarmă" %}
 {% endblock %}
 
 {% block content %}
@@ -46,8 +46,7 @@
     {% endif %}
   </div>
 
-  <div class="row">
-    <a class="btn btn--secondary" href="{% url 'scheduling:reminder_update' reminder.pk %}">{% icon "pencil" 18 %} Modifică</a>
-    <a class="btn btn--ghost" href="{% url 'assistant:edit' 'alarma' reminder.pk %}">{% icon "mic" 18 %} Prin voce</a>
-  </div>
+  {% url 'scheduling:reminder_update' reminder.pk as edit_url %}
+  {% url 'assistant:edit' 'alarma' reminder.pk as voice_url %}
+  {% include "core/_item_actions.html" %}
 {% endblock %}

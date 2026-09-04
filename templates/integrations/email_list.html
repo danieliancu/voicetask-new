@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load icons %}
 {% block title %}Emailuri{% endblock %}
-{% block header %}{% include "core/_appbar.html" with back_url="/integrari/" appbar_title="Emailuri" %}{% endblock %}
+{% block header %}{% url 'integrations:status' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Emailuri" %}{% endblock %}
 {% block content %}
   <div class="chips">
     <a class="chip {% if not selected_status %}is-active{% endif %}" href="{% url 'integrations:email_list' %}">Toate</a>

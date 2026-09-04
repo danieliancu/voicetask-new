@@ -65,12 +65,11 @@ def agenda_partial(request):
     day = _selected_day(request)
     view = _selected_view(request)
     calendar_context = calendars.build(request.user, view=view, day=day)
-    template = (
-        "scheduling/_month_grid.html" if view == "luna" else "scheduling/_agenda.html"
-    )
+    # Acelasi fragment ca in pagina completa: selectorul si agenda se schimba
+    # impreuna, deci optiunea activa nu poate ramane in urma fata de continut.
     return render(
         request,
-        template,
+        "scheduling/_calendar_body.html",
         {"cal": calendar_context, "views": calendars.VIEWS},
     )
 

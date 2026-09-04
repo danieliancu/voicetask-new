@@ -5,7 +5,8 @@
 {% block appbar_title %}Șterge{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url=request.META.HTTP_REFERER|default:"/" appbar_title="Șterge" %}
+  {% url 'core:home' as parinte %}
+  {% include "core/_appbar.html" with back_url=parinte appbar_title="Șterge" %}
 {% endblock %}
 
 {% block content %}

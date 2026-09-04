@@ -50,24 +50,6 @@ document.querySelectorAll("[data-open-drawer]").forEach((button) => {
   });
 });
 
-/* Ecranele imersive (de exemplu camera) revin la ecranul care le-a deschis.
- * Linkul ramane un fallback functional pentru acces direct sau JS dezactivat. */
-document.querySelectorAll("[data-history-back]").forEach((link) => {
-  link.addEventListener("click", (event) => {
-    let referrer;
-    try {
-      referrer = document.referrer ? new URL(document.referrer) : null;
-    } catch {
-      referrer = null;
-    }
-
-    if (referrer?.origin === window.location.origin && referrer.href !== window.location.href) {
-      event.preventDefault();
-      window.history.back();
-    }
-  });
-});
-
 document.body.addEventListener("htmx:afterSwap", (event) => setupDialogs(event.target));
 setupDialogs();
 

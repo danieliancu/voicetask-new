@@ -9,7 +9,7 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.accounts.models import UserPreference
-from apps.assistant import policy, reconcile, resolver
+from apps.assistant import edits, policy, reconcile, resolver
 from apps.assistant.models import IntentDraft, VoiceCapture
 from apps.assistant.schemas import (
     MUTATING_INTENTS,
@@ -18,9 +18,11 @@ from apps.assistant.schemas import (
     IntentValidationError,
     parse_result,
 )
+from apps.core.enums import ItemKind
 from apps.core.providers.base import ProviderError, ProviderUnavailable
 from apps.core.providers.context import IntentContext
 from apps.core.providers.registry import get_offline_provider, get_provider
+from apps.core.registry import model_for_kind
 
 logger = logging.getLogger("voicetask.assistant")
 
@@ -158,12 +160,27 @@ def interpret(
     result = reconcile.reconcile(result, text, context)
 
     candidates: list[resolver.Candidate] = []
-    if result.needs_target and result.target_id is None:
+    if result.intent == Intent.FOLLOW_UP_EMAIL and result.target_id is None:
+        # Emailul se alege, nu se ghiceste. O singura potrivire se preselecteaza —
+        # dar tot se afiseaza; mai multe raman la latitudinea utilizatorului.
+        candidates = resolver.resolve_email(user, result.person or result.title or text)
+        if len(candidates) == 1:
+            result = result.model_copy(
+                update={"target_id": candidates[0].pk, "target_kind": ItemKind.EMAIL}
+            )
+        elif not candidates:
+            result = result.model_copy(
+                update={"ambiguity": [*result.ambiguity, "email_negasit"]}
+            )
+    elif result.needs_target and result.target_id is None:
         found_id, found_kind, candidates = resolver.resolve(
             user, result.title or text, kind=result.target_kind or target_kind
         )
         if found_id is not None:
             result = result.model_copy(update={"target_id": found_id, "target_kind": found_kind})
+
+    if result.intent == Intent.UPDATE_ITEM:
+        result = _apply_edit_rules(result, text, context)
 
     decision = policy.decide(result, candidate_count=len(candidates), degraded=degraded)
 
@@ -193,16 +210,121 @@ def interpret(
     return draft
 
 
-def process_capture(capture: VoiceCapture, audio: bytes) -> IntentDraft | None:
+#: Cat de lung poate fi un titlu construit mecanic dintr-o notita.
+NOTE_TITLE_LIMIT = 80
+
+
+def note_title(text: str) -> str:
+    """Titlul unei notite, taiat mecanic — nu rezumat.
+
+    Primul rand nevid; daca trece de `NOTE_TITLE_LIMIT`, se taie la ultima limita de
+    cuvant. Nu se scoate nimic din text: titlul este o eticheta, iar continutul ramane
+    intreg. Nu intervine niciun model si nicio interpretare.
+    """
+    first = next((line.strip() for line in text.splitlines() if line.strip()), "")
+    if len(first) <= NOTE_TITLE_LIMIT:
+        return first
+    taiat = first[:NOTE_TITLE_LIMIT]
+    spatiu = taiat.rfind(" ")
+    return (taiat[:spatiu] if spatiu > 0 else taiat).rstrip(" ,.;:-") + "…"
+
+
+def capture_note(user, text: str, *, capture: VoiceCapture | None = None) -> IntentDraft:
+    """Salveaza textul ca notita, fara sa il interpreteze.
+
+    Cand utilizatorul a ales explicit tipul „Notă", ce a dictat nu este o comanda.
+    „Mâine la ora 3 mă întâlnesc cu Ion" este continutul notitei, nu o programare —
+    deci nu se cheama providerul de intentii, nu se cheama parserul local si nu se
+    face nicio reconciliere temporala. Schita ramane editabila: titlul, continutul,
+    categoria si „Fixează" pot fi schimbate inainte de salvare.
+    """
+    content = (text or "").strip()
+    result = IntentResult(
+        intent=Intent.CREATE_NOTE,
+        title=note_title(content),
+        description=content,
+        verbatim=True,
+    )
+    draft = IntentDraft.objects.create(
+        owner=user,
+        capture=capture,
+        intent=result.intent,
+        payload=result.model_dump(mode="json"),
+        confidence=result.confidence,
+        status=IntentDraft.Status.DRAFT,
+        source_text=content,
+        expires_at=timezone.now() + timedelta(minutes=settings.DRAFT_TTL_MINUTES),
+    )
+    if capture is not None:
+        capture.status = VoiceCapture.Status.READY
+        capture.save(update_fields=["status", "updated_at"])
+    return draft
+
+
+def process_capture(
+    capture: VoiceCapture, audio: bytes, *, intent: str | None = None
+) -> IntentDraft | None:
+    """Transcrie si, daca nu este o notita, interpreteaza.
+
+    Pentru o notita se opreste dupa transcriere: singurul provider folosit este cel
+    de transcriere.
+    """
     capture = transcribe(capture, audio)
     if capture.status == VoiceCapture.Status.FAILED:
         return None
+    if intent == Intent.CREATE_NOTE:
+        return capture_note(capture.owner, capture.transcript, capture=capture)
     return interpret(
         capture.owner,
         capture.transcript,
         capture=capture,
         mode=capture.mode,
     )
+
+
+def _apply_edit_rules(result: IntentResult, text: str, context: IntentContext) -> IntentResult:
+    """Decide ce se intampla cu titlul si descrierea la o modificare.
+
+    Implicit, nimic: titlul si descrierea obiectului raman ale lui. Se schimba doar
+    la o cerere explicita, iar completarea se calculeaza aici, nu la salvare — asa
+    utilizatorul vede in formular exact textul care se va scrie, iar o a doua
+    confirmare nu poate adauga inca o data.
+    """
+    obiect = _target_object(result, context)
+    cerere = edits.detect(text)
+
+    update: dict = {"title": None, "description": None}
+    if cerere.ambiguous:
+        update["ambiguity"] = [*result.ambiguity, "editare_ambigua"]
+        return result.model_copy(update=update)
+
+    if obiect is None:
+        # Fara obiect nu stim ce completam. Politica va cere oricum tinta.
+        return result.model_copy(update=update)
+
+    if cerere.title:
+        update["title"] = cerere.title[:200]
+    if cerere.replace_description:
+        update["description"] = cerere.replace_description
+    elif cerere.append:
+        update["description"] = edits.append_to_description(
+            _current_description(obiect), cerere.append, context.now
+        )
+    return result.model_copy(update=update)
+
+
+def _target_object(result: IntentResult, context: IntentContext):
+    kind = result.target_kind or context.target_kind
+    pk = result.target_id or context.target_id
+    if not kind or not pk:
+        return None
+    model = model_for_kind(kind)
+    return model.objects.filter(pk=pk).first() if model else None
+
+
+def _current_description(obiect) -> str:
+    """Notitele tin textul in `content`, restul in `description`."""
+    return getattr(obiect, "description", None) or getattr(obiect, "content", "") or ""
 
 
 def update_draft(

@@ -6,8 +6,13 @@
 
 {% block content %}
   <div class="section" style="text-align:center">
-    <h2 style="font-size:var(--fs-lg)">Spune ce vrei să creezi</h2>
-    <p class="muted text-sm">Asistentul completează detaliile, iar tu confirmi înainte de salvare.</p>
+    {% if is_note %}
+      <h2 style="font-size:var(--fs-lg)">Dictează notița</h2>
+      <p class="muted text-sm">Notița se salvează exact cum o spui, fără interpretare.</p>
+    {% else %}
+      <h2 style="font-size:var(--fs-lg)">Spune ce vrei să creezi</h2>
+      <p class="muted text-sm">Asistentul completează detaliile, iar tu confirmi înainte de salvare.</p>
+    {% endif %}
   </div>
 
   <div class="quick-actions" role="radiogroup" aria-label="Tipul elementului">
@@ -35,8 +40,13 @@
     </p>
   {% endif %}
 
+  {% comment %}
+  Tipul ales calatoreste in adresa de incarcare, ca sa ajunga pe server si sa fie
+  verificat acolo. Recorderul posteaza pe `data-upload-url`, deci nu are nevoie de
+  niciun JavaScript in plus.
+  {% endcomment %}
   <div class="recorder" data-recorder
-       data-upload-url="{% url 'assistant:voice_upload' %}"
+       data-upload-url="{% url 'assistant:voice_upload' %}?tip={{ selected_type }}"
        data-max-bytes="{{ max_audio_bytes }}">
     <button type="button" class="recorder__button" data-record-toggle data-state="idle"
             aria-label="Începe înregistrarea" aria-pressed="false">
@@ -47,7 +57,9 @@
     <div class="recorder__level" data-level-track aria-hidden="true">
       <div class="recorder__level-bar" data-level></div>
     </div>
-    <p class="recorder__status" data-status role="status" aria-live="polite">Apasă și vorbește</p>
+    <p class="recorder__status" data-status role="status" aria-live="polite">
+      {% if is_note %}Apasă și dictează notița{% else %}Apasă și vorbește{% endif %}
+    </p>
     <button type="button" class="btn btn--secondary btn--sm" data-record-cancel hidden>
       {% icon "close" 16 %} Anulează
     </button>
@@ -58,12 +70,16 @@
       {% icon "text" 18 %} Scrie în loc să vorbești
     </summary>
     <form class="stack" style="margin-top:var(--space-3)"
-          method="post" action="{% url 'assistant:text_command' %}"
-          hx-post="{% url 'assistant:text_command' %}"
+          method="post" action="{% url 'assistant:text_command' %}?tip={{ selected_type }}"
+          hx-post="{% url 'assistant:text_command' %}?tip={{ selected_type }}"
           hx-target="#zona-schita" hx-swap="innerHTML">
       {% csrf_token %}
       {% include "core/_form_fields.html" with form=text_form %}
-      <button type="submit" class="btn">{% icon "sparkles" 18 %} Interpretează</button>
+      {% if is_note %}
+        <button type="submit" class="btn">{% icon "note" 18 %} Salvează notița</button>
+      {% else %}
+        <button type="submit" class="btn">{% icon "sparkles" 18 %} Interpretează</button>
+      {% endif %}
     </form>
   </details>
 

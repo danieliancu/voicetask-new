@@ -36,14 +36,20 @@ FRAZE: tuple[tuple[str, str | None], ...] = (
     ("Programează o întâlnire mâine cu Ion.", None),
     ("Mă întâlnesc poimâine la 14 cu Ana.", None),
     ("Mă întâlnesc poimâine la două cu Ana.", "După-amiaza."),
-    ("Mă văd vineri la 10 cu Maria.", "Da."),
-    ("Mă întâlnesc pe 5 septembrie la 14:30 cu Ion.", "Da."),
+    ("Mă văd vineri la 10 cu Maria.", None),
+    ("Mă întâlnesc pe 5 septembrie la 14:30 cu Ion.", None),
     ("Peste două săptămâni mă întâlnesc cu medicul.", "La ora 11."),
-    ("Mă întâlnesc mâine dimineață.", None),
-    ("Mă întâlnesc vineri la 3.", "Da."),
-    ("Mă văd vineri la trei.", "Da."),
+    ("Mă întâlnesc mâine dimineață.", "La 9."),
+    ("Mă întâlnesc vineri la 3.", "După-amiaza."),
+    ("Mă văd vineri la trei.", "După-amiaza."),
     ("Programează o întâlnire cu Ion.", "Mâine la 10."),
     ("Programează o întâlnire cu medicul.", None),
+    # Intervale, AM/PM si formulari care trebuie sa ramana intrebari.
+    ("Ședință mâine de la 10 la 12.", None),
+    ("Ședință mâine între 10 și 12 cu echipa.", None),
+    ("Mă întâlnesc mâine la 3 PM cu Ion.", None),
+    ("Ne vedem săptămâna viitoare.", "Miercuri."),
+    ("Ne vedem 10-12.", "Pe 5 septembrie la 10."),
 )
 
 CAMPURI = ("intent", "date", "start_time", "end_time", "all_day", "title", "person", "location")

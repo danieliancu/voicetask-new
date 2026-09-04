@@ -161,14 +161,29 @@ def reconcile(result: IntentResult, text: str, context: IntentContext) -> Intent
         )
         if reason:
             reasons.append(reason)
-        start, end = data["start_time"], data.get("end_time")
-        # O ora de final fara inceput nu inseamna nimic, iar una dinaintea noului
-        # inceput ar face schema sa refuze schita intreaga.
-        if start is None or (end is not None and end < start):
+
+        data["end_time"], reason = _choose(
+            temporal.end_time,
+            result.end_time,
+            # O ora de final se sustine doar pe o formulare de interval, nu pe orice
+            # ora din text: „mâine la 10" nu spune nimic despre cand se termina.
+            marker=ro_time.has_range_marker(text),
+            conflict="ora_final_in_conflict",
+            unclear="ora_final_neclara",
+        )
+        if reason:
+            reasons.append(reason)
+
+        start, end = data["start_time"], data["end_time"]
+        # O ora de final fara inceput nu inseamna nimic. Una dinaintea inceputului
+        # ar face schema sa refuze schita intreaga, deci intrebam in loc sa ghicim
+        # ca intervalul trece in ziua urmatoare.
+        if end is not None and (start is None or end <= start):
+            if start is not None:
+                reasons.append("interval_invalid")
             data["end_time"] = None
 
-    if temporal.ambiguous and temporal.reason:
-        reasons.append(temporal.reason)
+    reasons.extend(temporal.reasons)
 
     # --- campuri concrete: se completeaza din text, nu se inventeaza -----------
     for field in ("person", "location"):

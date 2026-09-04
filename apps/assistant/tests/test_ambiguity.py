@@ -65,10 +65,16 @@ def test_candidatii_multipli_cer_alegere():
     assert not decision.can_confirm
 
 
-def test_urmarirea_fara_persoana_cere_clarificare():
+def test_urmarirea_cere_emailul_nu_persoana():
+    """Doua mesaje de la aceeasi persoana sunt doua lucruri diferite.
+
+    Numele expeditorului nu identifica emailul, deci nu el este intrebat: schita
+    are nevoie de mesajul ales, cerut de `policy.missing_fields`.
+    """
     result = parse("Urmărește emailul")
     if result.intent is Intent.FOLLOW_UP_EMAIL:
-        assert "persoana_nespecificata" in result.ambiguity
+        assert "persoana_nespecificata" not in result.ambiguity
+        assert policy.missing_fields(result)[0] == "email_nespecificat"
 
 
 def test_schita_ambigua_este_marcata_in_baza_de_date(user):

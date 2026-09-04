@@ -67,6 +67,43 @@
   background: var(--color-danger-text);
 }
 
+/* Grupul de actiuni al paginilor de detaliu.
+ *
+ * Cu `.row` (flex-wrap: wrap) cele trei butoane cereau ~376 px intr-un spatiu de
+ * 288 px la 320 px latime, deci treceau pe doua randuri. Coloane egale care se pot
+ * ingusta tin totul pe un rand, cu etichetele intregi si zona tactila neatinsa. */
+.item-actions {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: var(--space-2);
+  min-width: 0;
+  /* La latimi extreme, derulare orizontala in loc de trecere pe randul urmator. */
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.item-actions::-webkit-scrollbar {
+  display: none;
+}
+
+.item-actions .btn {
+  min-width: 0;
+  padding-inline: var(--space-1);
+  gap: var(--space-1);
+  /* „Prin voce" are doua cuvinte: fara asta se rupe chiar in interiorul butonului. */
+  white-space: nowrap;
+  font-size: var(--fs-sm);
+}
+
+/* La 320 px fiecare coloana are ~91 px. Cu iconul la 16 px raman ~59 px pentru text,
+   cat ii trebuie celei mai lungi etichete („Prin voce") la 13 px. Eticheta ramane
+   intreaga: se micsoreaza iconul, nu cuvantul. */
+.item-actions .icon {
+  width: 16px;
+  height: 16px;
+}
+
 .btn--sm {
   min-height: 36px;
   padding: var(--space-2) var(--space-3);

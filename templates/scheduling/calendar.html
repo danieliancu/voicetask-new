@@ -5,18 +5,7 @@
 {% block appbar_title %}Programări{% endblock %}
 
 {% block content %}
-  {% include "scheduling/_week_strip.html" with cal=cal %}
-
-  <nav class="segmented" aria-label="Mod de vizualizare">
-    {% for key, label in views %}
-      <a class="segmented__item" href="?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
-         hx-get="{% url 'scheduling:agenda_partial' %}?vizualizare={{ key }}&amp;d={{ cal.day|date:'Y-m-d' }}"
-         hx-target="#agenda" hx-swap="innerHTML" hx-push-url="true"
-         aria-pressed="{% if cal.view == key %}true{% else %}false{% endif %}">
-        {% icon "calendar" 16 %}{{ label }}
-      </a>
-    {% endfor %}
-  </nav>
+  {% include "scheduling/_calendar_body.html" with cal=cal views=views %}
 
   {% if brief %}
     <a class="brief-card" href="{% url 'daily_brief:today' %}">
@@ -30,20 +19,6 @@
       <span class="brief-card__play">{% icon "play" 18 %} Ascultă</span>
     </a>
   {% endif %}
-
-  <section class="section" aria-labelledby="titlu-agenda">
-    <div class="section__head">
-      <h2 class="section__title" id="titlu-agenda">Agenda · {{ cal.title }}</h2>
-      <span class="text-sm muted">Ordonate după oră</span>
-    </div>
-    <div id="agenda">
-      {% if cal.view == "luna" %}
-        {% include "scheduling/_month_grid.html" with cal=cal %}
-      {% else %}
-        {% include "scheduling/_agenda.html" with cal=cal %}
-      {% endif %}
-    </div>
-  </section>
 
   {% if upcoming_reminders %}
     <section class="section" aria-labelledby="titlu-alarme">

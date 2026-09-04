@@ -129,6 +129,20 @@ DOMAIN_NOUN_PREFIX = re.compile(
     r"intalnire|intalnirea|sedinta|eveniment|evenimentul|emailul|e-?mail|mesajul)\b[\s,]*"
 )
 
+#: Formulele care, dupa ce li se scot data si ora, nu mai lasa nimic folositor in
+#: titlu. „Mă întâlnesc vineri la 3" ar da titlul „Mă întâlnesc" — un verb, nu o
+#: eticheta. Fiecare primeste numele lucrului despre care este vorba, iar restul
+#: frazei („cu Ion") se pastreaza dupa el.
+#:
+#: „Programare" si „Ședință" lipsesc din prima pozitie deliberat: acolo textul de
+#: dupa verb este chiar subiectul („Programare la dentist") si nu trebuie inlocuit.
+CANONICAL_TITLES = (
+    (re.compile(r"^(?:am\s+)?(?:un\s+)?control(?:\s+medical)?\b"), "Control medical"),
+    (re.compile(r"^(?:ma\s+intalnesc|ne\s+intalnim|ma\s+vad|ne\s+vedem)\b"), "Întâlnire"),
+    (re.compile(r"^(?:am\s+)?(?:o\s+)?intalnire\b"), "Întâlnire"),
+    (re.compile(r"^(?:am\s+)?(?:o\s+)?consultatie\b"), "Consultație"),
+)
+
 #: Resturi de prepozitii ramase la finalul titlului dupa taierea datei sau orei.
 TRAILING_NOISE = re.compile(r"[\s,]*\b(?:la|in|pe|de|cu|si|ora|pentru|ca)\b[\s,.:;-]*$")
 
@@ -248,9 +262,6 @@ class RuleBasedIntentParser(IntentParserProvider):
             if context.target_id is None:
                 ambiguity.append("tinta_nespecificata")
 
-        if intent == Intent.FOLLOW_UP_EMAIL and not person:
-            ambiguity.append("persoana_nespecificata")
-
         if intent in {Intent.CREATE_APPOINTMENT, Intent.CREATE_REMINDER} and temporal.day is None:
             ambiguity.append("data_lipseste")
 
@@ -278,6 +289,10 @@ class RuleBasedIntentParser(IntentParserProvider):
         if marker:
             body = body[marker.end() :].strip(" ,.-")
 
+        canonical = self._canonical_title(body)
+        if canonical is not None:
+            return canonical
+
         had_verb = False
         previous = None
         while previous != body and body:
@@ -302,6 +317,20 @@ class RuleBasedIntentParser(IntentParserProvider):
         if title and title[0].islower():
             title = title[0].upper() + title[1:]
         return title
+
+    def _canonical_title(self, body: str) -> str | None:
+        """Eticheta pentru formulele care altfel ar lasa in titlu doar verbul."""
+        leading = " ,.:;-"
+        offset = len(body) - len(body.lstrip(leading))
+        folded = fold(body)[offset:]
+        for pattern, label in CANONICAL_TITLES:
+            match = pattern.match(folded)
+            if match is None:
+                continue
+            rest = body[offset + match.end() :]
+            rest = TRAILING_NOISE.sub("", rest).strip(" ,.-:;")
+            return f"{label} {rest}".strip() if rest else label
+        return None
 
     def _location(self, folded: str, raw: str) -> tuple[str | None, tuple[int, int] | None]:
         match = LOCATION_ONLINE.search(folded)

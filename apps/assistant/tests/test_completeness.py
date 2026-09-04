@@ -13,7 +13,7 @@ import pytest
 
 from apps.assistant import drafts as drafts_module
 from apps.assistant import policy
-from apps.assistant.forms import DraftForm
+from apps.assistant.forms import AppointmentDraftForm, ReminderDraftForm
 from apps.assistant.models import IntentDraft
 from apps.assistant.schemas import Intent, IntentResult
 from apps.scheduling.models import Appointment, Reminder
@@ -63,7 +63,19 @@ def rezultat(**campuri) -> IntentResult:
         ({"intent": Intent.CREATE_NOTE}, ["continut_lipseste"]),
         ({"intent": Intent.CREATE_NOTE, "description": "lapte"}, []),
         ({"intent": Intent.SEARCH, "search_query": "factura"}, []),
-        ({"intent": Intent.FOLLOW_UP_EMAIL}, ["persoana_nespecificata"]),
+        (
+            {"intent": Intent.FOLLOW_UP_EMAIL},
+            ["email_nespecificat", "data_lipseste", "ora_lipseste"],
+        ),
+        (
+            {
+                "intent": Intent.FOLLOW_UP_EMAIL,
+                "target_id": 7,
+                "date": ZI,
+                "start_time": time(9, 0),
+            },
+            [],
+        ),
     ],
 )
 def test_campurile_obligatorii_pe_intentii(campuri, lipsuri):
@@ -136,9 +148,7 @@ def test_formularul_refuza_programarea_fara_ora(user):
     draft = IntentDraft.objects.create(
         owner=user, intent=Intent.CREATE_APPOINTMENT, payload={"intent": Intent.CREATE_APPOINTMENT}
     )
-    form = DraftForm(
-        {"intent": Intent.CREATE_APPOINTMENT, "title": "Dentist", "date": "2026-09-02"}, draft=draft
-    )
+    form = AppointmentDraftForm({"title": "Dentist", "date": "2026-09-02"}, draft=draft)
 
     assert not form.is_valid()
     assert "start_time" in form.errors
@@ -149,9 +159,7 @@ def test_formularul_refuza_alarma_fara_ora(user):
     draft = IntentDraft.objects.create(
         owner=user, intent=Intent.CREATE_REMINDER, payload={"intent": Intent.CREATE_REMINDER}
     )
-    form = DraftForm(
-        {"intent": Intent.CREATE_REMINDER, "title": "Medicament", "date": "2026-09-02"}, draft=draft
-    )
+    form = ReminderDraftForm({"title": "Medicament", "date": "2026-09-02"}, draft=draft)
 
     assert not form.is_valid()
     assert "start_time" in form.errors
@@ -162,14 +170,8 @@ def test_formularul_accepta_programarea_pe_toata_ziua(user):
     draft = IntentDraft.objects.create(
         owner=user, intent=Intent.CREATE_APPOINTMENT, payload={"intent": Intent.CREATE_APPOINTMENT}
     )
-    form = DraftForm(
-        {
-            "intent": Intent.CREATE_APPOINTMENT,
-            "title": "Concediu",
-            "date": "2026-09-02",
-            "all_day": "on",
-        },
-        draft=draft,
+    form = AppointmentDraftForm(
+        {"title": "Concediu", "date": "2026-09-02", "all_day": "on"}, draft=draft
     )
 
     assert form.is_valid(), form.errors
@@ -181,14 +183,8 @@ def test_formularul_refuza_ora_impreuna_cu_toata_ziua(user):
     draft = IntentDraft.objects.create(
         owner=user, intent=Intent.CREATE_APPOINTMENT, payload={"intent": Intent.CREATE_APPOINTMENT}
     )
-    form = DraftForm(
-        {
-            "intent": Intent.CREATE_APPOINTMENT,
-            "title": "Concediu",
-            "date": "2026-09-02",
-            "start_time": "10:00",
-            "all_day": "on",
-        },
+    form = AppointmentDraftForm(
+        {"title": "Concediu", "date": "2026-09-02", "start_time": "10:00", "all_day": "on"},
         draft=draft,
     )
 

@@ -67,6 +67,29 @@ def score_title(query: str, title: str) -> float:
     return min(1.0, (matched + partial) / len(query_tokens))
 
 
+def resolve_email(user, text: str) -> list[Candidate]:
+    """Emailurile care se potrivesc, in ordinea potrivirii.
+
+    Spre deosebire de `resolve`, aici nu exista marja care sa aleaga singura un
+    castigator. „Cel mai recent email potrivit" marca linistit alt mesaj decat cel
+    la care se gandea utilizatorul, iar greseala se vedea abia dupa salvare.
+    """
+    from apps.integrations.models import EmailReference
+
+    scored = [
+        Candidate(
+            kind=ItemKind.EMAIL,
+            pk=email.pk,
+            title=f"{email.sender_name} — {email.subject or 'fără subiect'}",
+            score=score_title(text, f"{email.sender_name} {email.subject}"),
+        )
+        for email in EmailReference.objects.for_user(user).order_by("-received_at")[:100]
+    ]
+    scored = [candidate for candidate in scored if candidate.score >= MIN_SCORE]
+    scored.sort(key=lambda candidate: candidate.score, reverse=True)
+    return scored[:MAX_CANDIDATES]
+
+
 def resolve(
     user, text: str, *, kind: str | None = None
 ) -> tuple[int | None, str | None, list[Candidate]]:

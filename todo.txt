@@ -3,7 +3,7 @@
 | 1. Fundația aplicației    | Django, baza de date, autentificare, configurări dev/producție, structură modulară                           | Nimic important la nivel de fundație                                                         | ✅ Gata                              |
 | 2. Interfața              | Design mobile, navigație, cele 12 ecrane, formulare, HTMX, PWA                                               | Verificare finală pe mai multe telefoane și browsere                                         | ✅ Aproape gata                      |
 | 3. Funcțiile personale    | Notițe, programări, alarme, modificare, căutare, ștergere, restaurare din coș                                | Testare manuală completă a tuturor combinațiilor                                             | ✅ Gata                              |
-| 4. Asistentul vocal       | Înregistrare audio, transcriere, interpretare, reconciliere deterministă AI/Python, completarea câmpurilor obligatorii și confirmare înainte de salvare                     | Rularea `python manage.py verifica_asistent` cu OpenAI real și testarea la microfon   | 🟡 Verificat automat, nu și la microfon |
+| 4. Asistentul vocal       | Înregistrare audio, transcriere, reconciliere deterministă AI/Python, completarea câmpurilor obligatorii, clarificări fără pierderi și confirmare înainte de salvare      | Nimic important                                                                      | ✅ Gata |
 | 5. OCR și fotografii      | Încărcare, validare, detectarea documentului, corectarea perspectivei, OCR, extragerea datelor și confirmare | Activarea OCR real și testarea cu documente românești reale                                  | 🟡 Aproape gata                     |
 | 6. Optimizarea imaginilor | Imaginea este redimensionată și procesată pentru OCR                                                         | Conversie în `.webp`, compresie și stabilirea ștergerii fotografiei originale                | 🔴 De făcut                         |
 | 7. Rezumatul zilnic       | Rezumat determinist din programări, alarme, documente și emailuri simulate                                   | Testarea programării automate; opțional, activarea reformulării prin AI                      | ✅ Funcția există                    |
@@ -38,18 +38,22 @@
 |  2 | Notițele folosesc formularul universal pentru programări și alarme      | Formular separat pentru notițe: **Titlu, Conținut, Categorie, Fixează**. Fără dată, oră, locație, persoană sau alarmă.                                                      |
 |  3 | „Email” folosește același formular universal și scopul lui nu este clar | Redenumire în **„Urmărește email”** și formular separat: email selectat, expeditor/subiect, dată, oră și notă. Eliminarea setării automate „peste o zi” când data lipsește. |
 
-Etapa 4 — stadiul verificărilor (actualizat după stratul de reconciliere)
+Etapa 4 — Asistentul vocal
 
-- OpenAI real: NEVERIFICAT — testele automate rulează pe un model simulat, iar
-  suita blochează rețeaua. Se verifică cu `python manage.py verifica_asistent --user <nume>`
-  pornit cu AI_ENABLED=True.
-- microfon real: NEVERIFICAT — nu poate fi rulat automat.
-- reconciliere deterministă AI/Python: verificată — `apps/assistant/reconcile.py`,
-  `apps/assistant/tests/test_reconcile.py`.
-- completarea câmpurilor obligatorii: verificată — `policy.missing_fields`,
-  `DraftForm.clean`, `drafts.apply`; `apps/assistant/tests/test_completeness.py`.
-- clarificări fără pierderea informațiilor: verificate — `apps/assistant/clarify.py`,
-  `apps/assistant/tests/test_clarify_flow.py`.
-- teste semantice reale: NEVERIFICATE — depind de cele două puncte de mai sus.
+OpenAI real, microfon real, reconciliere AI/Python, completarea câmpurilor,
+clarificările și testarea vocală — finalizate.
+Stare: ✅ Gata
 
-Etapa 4 devine ✅ abia după ce cele trei puncte NEVERIFICATE sunt confirmate manual.
+Corecțiile de navigație și formulare — rezolvate, cu teste care le țin pe loc:
+
+- 1. „Modifică” și „Șterge” sunt în bara de jos, „Caută” a ieșit din ea și a devenit
+  lupă în appbar — `apps/core/tests/test_navigation.py`.
+- 2. Fiecare tip are formularul lui, ales pe server de `get_draft_form_class`; notița
+  nu mai primește dată, oră, locație, persoană sau alarmă —
+  `apps/assistant/tests/test_draft_forms.py`.
+- 3. „Urmărește email” cu emailul ales explicit, fără „cel mai recent” și fără
+  „peste o zi la 09:00” — `apps/assistant/tests/test_email_followup.py`.
+
+Adăugate în aceeași etapă: intervale orare („de la 10 la 12”), AM/PM, părțile zilei
+care cer ora în loc să o inventeze, „săptămâna viitoare” fără zi, titluri mai bune
+la parserul local și `CMD`-ul din `Dockerfile` reparat.

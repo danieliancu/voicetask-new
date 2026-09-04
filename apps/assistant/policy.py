@@ -11,6 +11,7 @@ from dataclasses import dataclass
 
 from django.conf import settings
 
+from apps.assistant import ro_time
 from apps.assistant.schemas import Intent, IntentResult
 from apps.core import dates_ro
 
@@ -27,8 +28,17 @@ QUESTIONS = {
     "ora_ambigua": "Ora nu este clară. Dimineața sau după-amiaza?",
     "ora_neclara": "Nu am înțeles ora. La ce oră anume?",
     "ora_in_conflict": "Nu sunt sigur de oră. Spune încă o dată ora.",
+    "ora_final_neclara": "Nu am înțeles până la ce oră. Poți spune ora de final?",
+    "ora_final_in_conflict": "Nu sunt sigur de ora de final. Până la ce oră?",
+    "interval_invalid": "Ora de final nu poate fi înaintea celei de început. Până la ce oră?",
+    "interval_sau_data": "Nu îmi dau seama dacă ai spus un interval orar sau o dată. "
+    "Poți să o spui altfel?",
+    "zi_saptamana_lipseste": "În ce zi săptămâna viitoare?",
+    "email_negasit": "Nu am găsit emailul la care te referi. Despre ce email este vorba?",
+    "email_nespecificat": "Am găsit mai multe emailuri potrivite. Pe care îl alegi?",
     "informatie_nesustinuta": "Nu am reținut bine detaliile. Poți să le repeți?",
     "intentie_in_conflict": "Nu sunt sigur ce vrei să fac. Poți reformula?",
+    "editare_ambigua": "Nu am înțeles cu ce să înlocuiesc. Spune și textul nou, te rog.",
     "persoana_nespecificata": "Despre ce persoană este vorba?",
     "tinta_nespecificata": "La ce element te referi?",
     "candidati_multipli": "Am găsit mai multe elemente potrivite. Pe care îl alegi?",
@@ -42,6 +52,8 @@ QUESTIONS_BY_INTENT = {
     (Intent.CREATE_REMINDER, "data_lipseste"): "Pentru ce dată să setez alarma?",
     (Intent.CREATE_REMINDER, "ora_lipseste"): "La ce oră să te anunț?",
     (Intent.CREATE_REMINDER, "titlu_lipseste"): "Pentru ce să te anunț?",
+    (Intent.FOLLOW_UP_EMAIL, "data_lipseste"): "În ce zi să îți amintesc de email?",
+    (Intent.FOLLOW_UP_EMAIL, "ora_lipseste"): "La ce oră să îți amintesc?",
 }
 
 #: Ce trebuie sa contina o schita ca sa poata fi salvata. Lipsa oricaruia dintre
@@ -58,8 +70,23 @@ REQUIRED_FIELDS: dict[Intent, tuple[tuple[str, str], ...]] = {
         ("start_time", "ora_lipseste"),
     ),
     Intent.SEARCH: (("search_query", "termen_cautare_lipseste"),),
-    Intent.FOLLOW_UP_EMAIL: (("person", "persoana_nespecificata"),),
+    # Urmarirea unui email are nevoie de emailul insusi, nu de un nume: doua
+    # mesaje de la aceeasi persoana sunt doua lucruri diferite.
+    Intent.FOLLOW_UP_EMAIL: (
+        ("target_id", "email_nespecificat"),
+        ("date", "data_lipseste"),
+        ("start_time", "ora_lipseste"),
+    ),
 }
+
+
+#: Partea de zi rostita fara ora exacta produce un motiv propriu, ca intrebarea sa
+#: fie „La ce oră după-amiaza?", nu una generica.
+VAGUE_HOUR_PREFIX = "ora_lipseste_"
+
+
+def is_known_reason(reason: str) -> bool:
+    return reason in QUESTIONS or reason.startswith(VAGUE_HOUR_PREFIX)
 
 
 def question_for(result: IntentResult, reason: str) -> str:
@@ -69,6 +96,10 @@ def question_for(result: IntentResult, reason: str) -> str:
     dată ziua" pune utilizatorul sa repete fara sa stie ce s-a retinut; „Am notat
     vineri, 11 septembrie. Este ziua corectă?" se poate confirma cu un cuvant.
     """
+    if reason.startswith(VAGUE_HOUR_PREFIX):
+        part = ro_time.DAY_PART_BY_CODE.get(reason.removeprefix(VAGUE_HOUR_PREFIX))
+        if part is not None:
+            return f"La ce oră {part.label}?"
     if reason == "data_in_conflict" and result.date is not None:
         return f"Am notat {dates_ro.format_weekday_date(result.date)}. Este ziua corectă?"
     if reason == "ora_in_conflict" and result.start_time is not None:
@@ -176,7 +207,7 @@ def decide(
     # face ca un motiv nou — de pilda un conflict intre model si parser — sa fie
     # inregistrat in schita si ignorat tacit la decizie.
     for reason in result.ambiguity:
-        if reason in QUESTIONS and reason not in RESOLVED_ELSEWHERE:
+        if is_known_reason(reason) and reason not in RESOLVED_ELSEWHERE:
             return Decision(
                 can_confirm=False,
                 needs_clarification=True,

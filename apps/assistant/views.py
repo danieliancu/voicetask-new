@@ -13,7 +13,7 @@ from django.views.generic import TemplateView
 
 from apps.assistant import clarify, services
 from apps.assistant import drafts as drafts_module
-from apps.assistant.forms import DraftForm, TextCommandForm
+from apps.assistant.forms import BaseDraftForm, TextCommandForm, get_draft_form_class
 from apps.assistant.models import IntentDraft, VoiceCapture
 from apps.assistant.schemas import Intent, IntentResult
 from apps.core.enums import ItemKind
@@ -29,8 +29,19 @@ CAPTURE_TYPES = (
     (Intent.CREATE_NOTE, "Notă", "note"),
     (Intent.CREATE_APPOINTMENT, "Programare", "calendar"),
     (Intent.CREATE_REMINDER, "Alarmă", "bell"),
-    (Intent.FOLLOW_UP_EMAIL, "Email", "mail"),
+    (Intent.FOLLOW_UP_EMAIL, "Urmărește email", "mail"),
 )
+
+
+#: Tipurile pe care le poate alege utilizatorul pe ecranul „Adaugă". Orice altceva
+#: venit din cerere se ignora: selectia din interfata nu este de incredere.
+CAPTURE_INTENTS = frozenset(intent for intent, _, _ in CAPTURE_TYPES)
+
+
+def _requested_intent(request) -> str | None:
+    """Tipul cerut, validat. `None` inseamna „interpretează ca până acum"."""
+    raw = request.GET.get("tip") or request.POST.get("tip") or ""
+    return raw if raw in CAPTURE_INTENTS else None
 
 
 class CaptureView(OwnerQuerysetMixin, TemplateView):
@@ -44,13 +55,15 @@ class CaptureView(OwnerQuerysetMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         transcription = get_provider("transcription")
+        selected = _requested_intent(self.request) or Intent.CREATE_NOTE
         context.update(
             {
                 "page": "capture",
                 "capture_types": CAPTURE_TYPES,
-                "selected_type": self.request.GET.get("tip", Intent.CREATE_NOTE),
+                "selected_type": selected,
+                "is_note": selected == Intent.CREATE_NOTE,
                 "mode": self.request.GET.get("mod", "voce"),
-                "text_form": TextCommandForm(),
+                "text_form": TextCommandForm(intent=selected),
                 "transcription_is_demo": transcription.is_mock,
                 "transcription_unavailable": not transcription.is_available(),
                 "max_audio_bytes": settings.MAX_UPLOAD_AUDIO_BYTES,
@@ -82,7 +95,8 @@ def voice_upload(request):
     capture.audio.save(f"comanda.{detected.extension}", ContentFile(payload), save=False)
     capture.save()
 
-    draft = services.process_capture(capture, payload)
+    # Tipul ales calatoreste in adresa de incarcare, deci ajunge aici si se verifica.
+    draft = services.process_capture(capture, payload, intent=_requested_intent(request))
     if draft is None:
         return JsonResponse(
             {"eroare": capture.error or "Înregistrarea nu a putut fi procesată."}, status=502
@@ -97,11 +111,16 @@ def voice_upload(request):
 @limited("ai")
 def text_command(request):
     """Aceeasi interpretare, dar pornind de la text scris."""
-    form = TextCommandForm(request.POST)
+    intent = _requested_intent(request)
+    form = TextCommandForm(request.POST, intent=intent)
     if not form.is_valid():
         return render(request, "assistant/_text_form.html", {"text_form": form}, status=400)
+    text = form.cleaned_data["text"]
+    if intent == Intent.CREATE_NOTE:
+        # O notita scrisa se ia ca atare: niciun provider nu vede textul.
+        return _render_draft(request, services.capture_note(request.user, text))
     draft = services.interpret(
-        request.user, form.cleaned_data["text"], mode=form.cleaned_data.get("mode") or "create"
+        request.user, text, mode=form.cleaned_data.get("mode") or "create"
     )
     return _render_draft(request, draft)
 
@@ -110,12 +129,16 @@ def _render_draft(
     request,
     draft: IntentDraft,
     *,
-    form: DraftForm | None = None,
+    form: BaseDraftForm | None = None,
     status: int = 200,
     full_page: bool = False,
 ):
     """Fragment pentru HTMX, pagina completa pentru navigarea fara JavaScript."""
     result = IntentResult.model_validate(draft.payload)
+    if form is None:
+        # Formularul depinde de tip: o notita nu are ce face cu ora si locatia.
+        form_class = get_draft_form_class(draft)
+        form = form_class(draft=draft) if form_class is not None else None
     template = (
         "assistant/_draft_form.html"
         if getattr(request, "htmx", False) and not full_page
@@ -127,11 +150,12 @@ def _render_draft(
         {
             "draft": draft,
             "result": result,
-            "form": form or DraftForm(draft=draft),
+            "form": form,
             "needs_clarification": draft.status == IntentDraft.Status.NEEDS_CLARIFICATION,
             "is_destructive": result.is_destructive,
             "candidates": draft.candidates,
             "page": "capture",
+            "parent_url": _draft_parent_url(draft),
         },
         status=status,
     )
@@ -223,7 +247,15 @@ def draft_confirm(request, uid):
 
     overrides = None
     if not result.is_destructive:
-        form = DraftForm(request.POST, draft=draft)
+        form_class = get_draft_form_class(draft)
+        if form_class is None:
+            return render(
+                request,
+                "assistant/_error.html",
+                {"draft": draft, "message": "Această comandă nu poate fi salvată."},
+                status=409,
+            )
+        form = form_class(request.POST, draft=draft)
         if not form.is_valid():
             return _render_draft(request, draft, form=form, status=400)
         overrides = form.to_overrides()
@@ -242,6 +274,17 @@ def draft_confirm(request, uid):
         response["HX-Redirect"] = target
         return response
     return redirect(target)
+
+
+def _draft_parent_url(draft: IntentDraft) -> str:
+    """Unde urca sageata de pe o schita.
+
+    Sursa este schita salvata — `target_kind` si `target_id` scrise de server — nu un
+    parametru din adresa, deci nu se poate transforma intr-o redirectare externa.
+    """
+    if draft.target_kind and draft.target_id:
+        return _redirect_url(draft.target_kind, draft.target_id)
+    return reverse("assistant:capture")
 
 
 def _success_message(intent: str, kind: str) -> str:
@@ -305,6 +348,8 @@ class EditByVoiceView(OwnerQuerysetMixin, TemplateView):
                 "page": "edit",
                 "kind": kind,
                 "object": obj,
+                # Parintele acestui ecran este chiar obiectul editat, nu hubul.
+                "parent_url": _redirect_url(kind, obj.pk),
                 "examples": EDIT_EXAMPLES.get(kind, EDIT_EXAMPLES["default"]),
                 "transcription_unavailable": not transcription.is_available(),
             }

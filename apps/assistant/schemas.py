@@ -35,7 +35,7 @@ INTENT_LABELS = {
     Intent.CREATE_NOTE: "Notă",
     Intent.CREATE_APPOINTMENT: "Programare",
     Intent.CREATE_REMINDER: "Alarmă",
-    Intent.FOLLOW_UP_EMAIL: "Email",
+    Intent.FOLLOW_UP_EMAIL: "Urmărește email",
     Intent.UPDATE_ITEM: "Modificare",
     Intent.DELETE_ITEM: "Ștergere",
     Intent.SEARCH: "Căutare",
@@ -63,6 +63,12 @@ class IntentResult(BaseModel):
     target_id: int | None = Field(default=None, ge=1)
     target_kind: str | None = Field(default=None, max_length=20)
     person: str | None = Field(default=None, max_length=120)
+    #: Campuri pe care le completeaza aplicatia, nu modelul. Vezi `JSON_SCHEMA`.
+    category_id: int | None = Field(default=None, ge=1)
+    is_pinned: bool = False
+    #: Textul a fost luat ca atare, fara interpretare. O notita dictata nu este o
+    #: comanda, deci nu are nici intentie dedusa, nici scor de incredere de aratat.
+    verbatim: bool = False
     amount: float | None = Field(default=None, ge=0)
     currency: str | None = Field(default=None, max_length=8)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
@@ -127,5 +133,17 @@ class IntentValidationError(Exception):
         return [".".join(str(part) for part in err["loc"]) for err in self.original.errors()]
 
 
+#: Campuri pe care le stabileste aplicatia, nu modelul: id-ul unei categorii, decizia
+#: de a fixa o notita, faptul ca textul nu a fost interpretat. Nu i se arata deloc.
+INTERNAL_FIELDS = ("category_id", "is_pinned", "verbatim")
+
+
+def _schema_pentru_model() -> dict[str, Any]:
+    schema = IntentResult.model_json_schema()
+    for name in INTERNAL_FIELDS:
+        schema.get("properties", {}).pop(name, None)
+    return schema
+
+
 #: Schema JSON transmisa modelului AI, ca sa raspunda direct in formatul corect.
-JSON_SCHEMA = IntentResult.model_json_schema()
+JSON_SCHEMA = _schema_pentru_model()

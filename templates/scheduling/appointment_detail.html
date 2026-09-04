@@ -4,7 +4,7 @@
 {% block title %}{{ appointment.title }}{% endblock %}
 
 {% block header %}
-  {% include "core/_appbar.html" with back_url="/programari/" appbar_title="Programare" %}
+  {% url 'scheduling:calendar' as parinte %}{% include "core/_appbar.html" with back_url=parinte appbar_title="Programare" %}
 {% endblock %}
 
 {% block content %}
@@ -60,15 +60,8 @@
     {% include "scheduling/_sync_state.html" with appointment=appointment %}
   </div>
 
-  <div class="row">
-    <a class="btn btn--secondary" href="{% url 'scheduling:update' appointment.pk %}">{% icon "pencil" 18 %} Modifică</a>
-    <a class="btn btn--ghost" href="{% url 'assistant:edit' 'programare' appointment.pk %}">{% icon "mic" 18 %} Prin voce</a>
-    <span class="spacer"></span>
-    <button type="button" class="btn btn--danger btn--sm"
-            hx-get="{% url 'scheduling:delete' appointment.pk %}"
-            hx-target="#dialog-confirmare" hx-swap="innerHTML">
-      {% icon "trash" 18 %} Șterge
-    </button>
-  </div>
-  <div id="dialog-confirmare"></div>
+  {% url 'scheduling:update' appointment.pk as edit_url %}
+  {% url 'assistant:edit' 'programare' appointment.pk as voice_url %}
+  {% url 'scheduling:delete' appointment.pk as delete_url %}
+  {% include "core/_item_actions.html" %}
 {% endblock %}
